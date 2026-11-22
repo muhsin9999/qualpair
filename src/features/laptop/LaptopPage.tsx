@@ -1,0 +1,142 @@
+import { useLiveQuery } from 'dexie-react-hooks';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, Circle, Download, Laptop, LoaderCircle, Pause, Play } from 'lucide-react';
+import { usePid, useCodebook, useTranscripts } from '../../app/hooks';
+import { studyStats } from '../../app/stats';
+import { CodeChip, PageHead, Track } from '../../app/ui';
+import { eta, isRunning, useRuns } from '../../app/runs';
+import { getDeviceReader, setPracticeMode } from '../../ai/registry';
+import type { DeviceStatus } from '../../ai/readers';
+
+function ModelStatus({ onReady }: { onReady: () => void }) {
+  const reader = getDeviceReader();
+  const [status, setStatus] = useState<DeviceStatus | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    void reader.status().then(setStatus);
+  }, [reader]);
+  if (!status || status === 'available') return null;
+  async function download() {
+    setErr('');
+    setProgress(0);
+    try {
+      await reader.warmUp((f) => setProgress(f));
+      setStatus('available');
+      onReady();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setProgress(null);
+    }
+  }
+  if (status === 'unsupported' || status === 'unavailable')
+    return (
+      <div className="card pad stack" style={{ borderColor: 'var(--attn-line)', background: 'var(--attn-tint)' }}>
+        <strong>The laptop reader can’t run in this browser</strong>
+        <span className="small muted">
+          {status === 'unsupported'
+            ? 'It needs desktop Chrome with the built-in model (Gemini Nano). Open QualCheck in Chrome on a laptop or desktop.'
+            : 'Chrome says the model is unavailable on this computer, usually because of disk space (about 22 GB free needed) or hardware. Check chrome://on-device-internals for the reason.'}
+        </span>
+        <span className="small">Your transcripts will <strong>not</strong> be sent to the cloud instead.</span>
+        <button className="btn small" style={{ alignSelf: 'flex-start' }} onClick={() => { setPracticeMode(true); location.reload(); }}>Use practice readers (keyword rules, no AI)</button>
+      </div>
+    );
+  return (
+    <div className="card pad stack">
+      <strong>Download the laptop reader</strong>
+      <span className="small muted">Chrome downloads Gemini Nano once (about 2 GB, needs about 22 GB free disk). After that it works offline.</span>
+      {progress !== null ? <><Track value={progress * 100} total={100} kind="laptop" /><span className="tiny faint">{Math.round(progress * 100)}%</span></> : (
+        <button className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={download}><Download size={16} /> Download (about 2 GB)</button>
+      )}
+      {err && <span className="small attn">{err}</span>}
+    </div>
+  );
+}
+
+export default function LaptopPage() {
+  const pid = usePid();
+  const book = useCodebook(pid);
+  const transcripts = useTranscripts(pid);
+  const s = useLiveQuery(() => studyStats(pid), [pid]);
+  const run = useRuns((r) => r.runs.laptop);
+  const start = useRuns((r) => r.start);
+  const stop = useRuns((r) => r.stop);
+  const [, force] = useState(0);
+  const reader = getDeviceReader();
+  const running = isRunning(run) && run?.pid === pid;
+  useEffect(() => {
+    const t = setInterval(() => force((x) => x + 1), 5000);
+    return () => clearInterval(t);
+  }, []);
+  if (!s) return null;
+  const done = running ? run!.progress.done : s.laptopDone;
+  const total = s.codable;
+  const currentTranscript = transcripts?.find((t) => (s.perTranscript.get(t.id)?.laptop ?? 0) < (s.perTranscript.get(t.id)?.codable ?? 0));
+  const tIndex = currentTranscript && transcripts ? transcripts.indexOf(currentTranscript) + 1 : 0;
+
+  return (
+    <>
+      <PageHead title="Laptop reader" sub={reader.isPractice ? reader.modelName : 'Gemini Nano, running on this computer'} />
+      <div className="work col" style={{ maxWidth: 980 }}>
+        <ModelStatus onReady={() => force((x) => x + 1)} />
+        {!book ? (
+          <div className="card empty">Write your codebook first.</div>
+        ) : (
+          <div className="paper stack" style={{ padding: '26px 30px', gap: 18 }}>
+            <div className="row">
+              <span style={{ width: 44, height: 44, borderRadius: 22, background: 'var(--laptop-tint)', display: 'grid', placeItems: 'center' }}><Laptop size={22} color="var(--laptop)" /></span>
+              <div className="spacer">
+                <div style={{ fontSize: 22, fontWeight: 800 }}>
+                  {done >= total && total ? 'All paragraphs coded' : running ? `Coding interview ${tIndex} of ${transcripts?.length ?? 0}` : 'Ready to code'}
+                </div>
+                <div className="small muted">{running ? (done === run!.base ? 'Loading the model. The first paragraph takes about a minute.' : 'About 5 seconds per paragraph. You can keep working elsewhere in the app.') : 'Each finished paragraph is saved, so you can pause any time.'}</div>
+              </div>
+              {running ? (
+                <button className="btn" onClick={() => stop('laptop')}><Pause size={16} /> Pause</button>
+              ) : done < total ? (
+                <button className="btn primary" onClick={() => start(pid, 'laptop')}><Play size={16} /> {done ? 'Resume' : 'Start'}</button>
+              ) : null}
+            </div>
+            <div className="row" style={{ alignItems: 'baseline' }}>
+              <span style={{ fontSize: 44, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{done.toLocaleString()}</span>
+              <span className="muted spacer">of {total.toLocaleString()} paragraphs</span>
+              {running && <strong className="laptop">{eta(run)}</strong>}
+            </div>
+            <Track value={done} total={total} kind="laptop" />
+            {run?.error && <div className="notice">The laptop reader stopped: {run.error}</div>}
+          </div>
+        )}
+        {running && run?.last && (
+          <div className="card pad stack">
+            <span className="label">Just coded</span>
+            <div style={{ font: 'italic 15.5px/1.55 var(--read)' }}>“{run.last.text}”</div>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+              {run.last.codeIds.length ? run.last.codeIds.map((id) => { const c = book?.codes.find((x) => x.id === id); return c ? <CodeChip key={id} code={c} /> : null; }) : <span className="small faint">No codes</span>}
+            </div>
+          </div>
+        )}
+        <div className="table-wrap">
+          <table className="table">
+            <tbody>
+              {transcripts?.map((t) => {
+                const p = s.perTranscript.get(t.id);
+                if (!p) return null;
+                const full = p.codable > 0 && p.laptop >= p.codable;
+                const active = running && t.id === currentTranscript?.id;
+                return (
+                  <tr key={t.id}>
+                    <td style={{ width: 30 }}>{full ? <CheckCircle2 size={16} color="var(--laptop)" /> : active ? <LoaderCircle size={16} color="var(--laptop)" /> : <Circle size={16} color="var(--ink3)" />}</td>
+                    <td style={{ width: 180, fontWeight: active ? 700 : 500 }}>{t.title}</td>
+                    <td><Track value={p.laptop} total={p.codable} kind="laptop" /></td>
+                    <td className="small faint" style={{ width: 110, textAlign: 'right' }}>{full ? `${p.codable} paragraphs` : `${p.laptop} / ${p.codable}`}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
