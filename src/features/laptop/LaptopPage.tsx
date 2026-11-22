@@ -4,7 +4,7 @@ import { CheckCircle2, Circle, Download, Laptop, LoaderCircle, Pause, Play } fro
 import { usePid, useCodebook, useTranscripts } from '../../app/hooks';
 import { studyStats } from '../../app/stats';
 import { CodeChip, PageHead, Track } from '../../app/ui';
-import { eta, isRunning, useRuns } from '../../app/runs';
+import { currentElapsed, eta, formatElapsed, isRunning, isWarmingUp, useRuns } from '../../app/runs';
 import { getDeviceReader, setPracticeMode } from '../../ai/registry';
 import type { DeviceStatus } from '../../ai/readers';
 
@@ -66,14 +66,27 @@ export default function LaptopPage() {
   const reader = getDeviceReader();
   const running = isRunning(run) && run?.pid === pid;
   useEffect(() => {
-    const t = setInterval(() => force((x) => x + 1), 5000);
+    if (!running) return;
+    const t = setInterval(() => force((x) => x + 1), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [running]);
   if (!s) return null;
   const done = running ? run!.progress.done : s.laptopDone;
   const total = s.codable;
   const currentTranscript = transcripts?.find((t) => (s.perTranscript.get(t.id)?.laptop ?? 0) < (s.perTranscript.get(t.id)?.codable ?? 0));
   const tIndex = currentTranscript && transcripts ? transcripts.indexOf(currentTranscript) + 1 : 0;
+  const warming = running && isWarmingUp(run);
+  const elapsed = formatElapsed(currentElapsed(run));
+  let title = 'Ready to code';
+  let sub = 'Each finished paragraph is saved, so you can pause any time.';
+  if (done >= total && total) title = 'All paragraphs coded';
+  else if (warming) {
+    title = reader.isPractice ? 'Starting' : 'Loading Gemini Nano';
+    if (!reader.isPractice) sub = 'The first paragraph takes about a minute while the model loads. After that, a few seconds each.';
+  } else if (running) {
+    title = `Coding interview ${tIndex} of ${transcripts?.length ?? 0}`;
+    sub = `Reading paragraph ${(done + 1).toLocaleString()} · ${elapsed}. You can keep working elsewhere in the app.`;
+  }
 
   return (
     <>
@@ -87,10 +100,12 @@ export default function LaptopPage() {
             <div className="row">
               <span style={{ width: 44, height: 44, borderRadius: 22, background: 'var(--laptop-tint)', display: 'grid', placeItems: 'center' }}><Laptop size={22} color="var(--laptop)" /></span>
               <div className="spacer">
-                <div style={{ fontSize: 22, fontWeight: 800 }}>
-                  {done >= total && total ? 'All paragraphs coded' : running ? `Coding interview ${tIndex} of ${transcripts?.length ?? 0}` : 'Ready to code'}
+                <div className="row" style={{ gap: 10, fontSize: 22, fontWeight: 800 }}>
+                  {running && <LoaderCircle size={20} color="var(--laptop)" className="spin" aria-hidden />}
+                  {title}
+                  {warming && <span className="laptop" style={{ fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{elapsed}</span>}
                 </div>
-                <div className="small muted">{running ? (done === run!.base ? 'Loading the model. The first paragraph takes about a minute.' : 'About 5 seconds per paragraph. You can keep working elsewhere in the app.') : 'Each finished paragraph is saved, so you can pause any time.'}</div>
+                <div className="small muted" aria-live="polite">{sub}</div>
               </div>
               {running ? (
                 <button className="btn" onClick={() => stop('laptop')}><Pause size={16} /> Pause</button>
@@ -101,9 +116,9 @@ export default function LaptopPage() {
             <div className="row" style={{ alignItems: 'baseline' }}>
               <span style={{ fontSize: 44, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{done.toLocaleString()}</span>
               <span className="muted spacer">of {total.toLocaleString()} paragraphs</span>
-              {running && <strong className="laptop">{eta(run)}</strong>}
+              {running && <strong className="laptop">{warming ? '' : eta(run) || 'working out time left…'}</strong>}
             </div>
-            <Track value={done} total={total} kind="laptop" />
+            {warming ? <Track value={0} total={0} kind="laptop" busy /> : <Track value={done} total={total} kind="laptop" />}
             {run?.error && <div className="notice">The laptop reader stopped: {run.error}</div>}
           </div>
         )}
@@ -126,7 +141,7 @@ export default function LaptopPage() {
                 const active = running && t.id === currentTranscript?.id;
                 return (
                   <tr key={t.id}>
-                    <td style={{ width: 30 }}>{full ? <CheckCircle2 size={16} color="var(--laptop)" /> : active ? <LoaderCircle size={16} color="var(--laptop)" /> : <Circle size={16} color="var(--ink3)" />}</td>
+                    <td style={{ width: 30 }}>{full ? <CheckCircle2 size={16} color="var(--laptop)" /> : active ? <LoaderCircle size={16} color="var(--laptop)" className="spin" /> : <Circle size={16} color="var(--ink3)" />}</td>
                     <td style={{ width: 180, fontWeight: active ? 700 : 500 }}>{t.title}</td>
                     <td><Track value={p.laptop} total={p.codable} kind="laptop" /></td>
                     <td className="small faint" style={{ width: 110, textAlign: 'right' }}>{full ? `${p.codable} paragraphs` : `${p.laptop} / ${p.codable}`}</td>

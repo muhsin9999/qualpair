@@ -7,7 +7,7 @@ import { createProject, deleteProject } from '../../services/core';
 import { loadSampleProject } from '../../services/sample';
 import { agreementByCode } from '../../services/results';
 import { studyStats } from '../../app/stats';
-import { useRuns, eta, isRunning } from '../../app/runs';
+import { useRuns, eta, isRunning, isWarmingUp } from '../../app/runs';
 import { kappaBand } from '../../domain/stats/agreement';
 import type { Project } from '../../types';
 
@@ -100,7 +100,7 @@ export function ProjectsPage() {
               <div className="row tiny" style={{ color: '#7fd1be', fontWeight: 700, letterSpacing: '0.1em' }}><span className="dot" style={{ background: '#7fd1be' }} /> READING NOW</div>
               <div style={{ fontSize: 22, fontWeight: 800 }}>{liveProject.name}</div>
               <div style={{ opacity: 0.75, fontSize: 14 }}>
-                The {live.kind === 'laptop' ? 'laptop' : 'cloud'} reader has done {live.progress.done} of {live.progress.total} paragraphs · {eta(live) || 'starting…'}
+                The {live.kind === 'laptop' ? 'laptop' : 'cloud'} reader has done {live.progress.done} of {live.progress.total} paragraphs · {isWarmingUp(live) ? (live.kind === 'laptop' ? 'loading the model…' : 'starting…') : eta(live) || 'working out time left…'}
               </div>
               <div className="track" style={{ background: '#ffffff22' }}><i style={{ width: `${(live.progress.done / Math.max(1, live.progress.total)) * 100}%`, background: '#7fd1be' }} /></div>
             </div>

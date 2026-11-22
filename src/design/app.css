@@ -145,6 +145,11 @@ mark.q { background: rgb(201 138 30 / 0.22); box-shadow: inset 0 -2.5px 0 var(--
 .track { height: 8px; border-radius: 99px; background: #e2ded6; overflow: hidden; }
 .track > i { display: block; height: 100%; background: var(--ink); border-radius: 99px; transition: width 0.3s; }
 .track.laptop > i { background: var(--laptop); }
+.track.busy > i { width: 30%; animation: track-busy 1.4s ease-in-out infinite; }
+@keyframes track-busy { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+.spin { animation: spin 1s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } .track.busy > i { animation-duration: 4s; } }
 .track.cloud > i { background: var(--cloud); }
 
 /* Agreement bars */

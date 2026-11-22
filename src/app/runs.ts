@@ -16,6 +16,10 @@ interface RunState {
   base?: number;
   error?: string;
   last?: { text: string; codeIds: string[] };
+  /** When the paragraph being read now was started (or the run, before the first one). */
+  lastAt?: number;
+  /** Seconds per paragraph for recent paragraphs, not counting the first one (it includes loading the model). */
+  durations?: number[];
   controller: AbortController;
 }
 
@@ -42,9 +46,19 @@ export const useRuns = create<RunsStore>((set, get) => ({
         const cur = s.runs[kind];
         if (!cur || cur.controller !== controller) return s;
         const last = p.current ? { text: texts.get(p.current.segmentId) ?? '', codeIds: p.current.codeIds } : cur.last;
-        const base = cur.base ?? p.done;
-        const startedAt = cur.base === undefined ? Date.now() : cur.startedAt;
-        return { runs: { ...s.runs, [kind]: { ...cur, base, startedAt, progress: p, last } } };
+        const now = Date.now();
+        if (cur.base === undefined) {
+          return { runs: { ...s.runs, [kind]: { ...cur, base: p.done, startedAt: now, lastAt: now, durations: [], progress: p, last } } };
+        }
+        const added = p.done - cur.progress.done;
+        let durations = cur.durations ?? [];
+        let lastAt = cur.lastAt ?? now;
+        if (added > 0) {
+          // The first paragraph of a run includes loading the model, so it would make the estimate far too long.
+          if (cur.progress.done > cur.base) durations = [...durations, (now - lastAt) / added].slice(-8);
+          lastAt = now;
+        }
+        return { runs: { ...s.runs, [kind]: { ...cur, progress: p, last, durations, lastAt } } };
       });
     try {
       if (kind === 'laptop') await runLaptopReader(pid, getDeviceReader(), update, controller.signal);
@@ -80,12 +94,29 @@ export function isRunning(r: RunState | undefined) {
   return !!r && !r.error && r.progress.done < r.progress.total && !r.controller.signal.aborted;
 }
 
+/** True until the first paragraph of this run is finished (for the laptop reader, that includes loading the model). */
+export function isWarmingUp(r: RunState | undefined) {
+  return !!r && (r.base === undefined || r.progress.done === r.base);
+}
+
+/** Milliseconds spent on the paragraph being read now. */
+export function currentElapsed(r: RunState | undefined, now = Date.now()) {
+  return r?.lastAt ? Math.max(0, now - r.lastAt) : 0;
+}
+
+/** Time left, from the median of recent paragraphs. Empty until there are two timed paragraphs. */
 export function eta(r: RunState | undefined): string {
-  const doneThisRun = r ? r.progress.done - (r.base ?? 0) : 0;
-  if (!r || doneThisRun <= 0) return '';
-  const elapsed = Date.now() - r.startedAt;
-  const per = elapsed / doneThisRun;
-  const left = (r.progress.total - r.progress.done) * per;
-  const min = Math.round(left / 60000);
-  return min < 1 ? 'under a minute left' : `about ${min} min left`;
+  const d = r?.durations ?? [];
+  if (!r || d.length < 2) return '';
+  const sorted = d.slice().sort((a, b) => a - b);
+  const per = sorted[Math.floor(sorted.length / 2)]!;
+  const min = Math.round(((r.progress.total - r.progress.done) * per) / 60000);
+  if (min < 1) return 'under a minute left';
+  if (min < 90) return `about ${min} min left`;
+  return `about ${Math.round(min / 60)} hours left`;
+}
+
+export function formatElapsed(ms: number) {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }

@@ -15,8 +15,10 @@ export function PageHead({ title, sub, children }: { title: ReactNode; sub?: Rea
   );
 }
 
-export function Track({ value, total, kind }: { value: number; total: number; kind?: 'laptop' | 'cloud' }) {
+/** Progress bar. `busy` shows a moving bar when there is no count yet (e.g. while a model loads). */
+export function Track({ value, total, kind, busy }: { value: number; total: number; kind?: 'laptop' | 'cloud'; busy?: boolean }) {
   const w = total ? Math.min(100, (value / total) * 100) : 0;
+  if (busy) return <div className={`track busy ${kind ?? ''}`} role="progressbar" aria-busy="true"><i /></div>;
   return (
     <div className={`track ${kind ?? ''}`} role="progressbar" aria-valuenow={value} aria-valuemax={total}>
       <i style={{ width: `${w}%` }} />
