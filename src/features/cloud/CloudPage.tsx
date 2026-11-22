@@ -24,6 +24,10 @@ export default function CloudPage() {
   const approvedTs = transcripts?.filter((t) => approvals?.has(t.id)) ?? [];
   const [tid, setTid] = useState<string>('');
   const shownId = tid || approvedTs[0]?.id;
+  const label = useLiveQuery(async () => {
+    const t = shownId ? await db.transcripts.get(shownId) : undefined;
+    return t ? (await db.participants.get(t.participantId))?.label : undefined;
+  }, [shownId]);
   const copies = useLiveQuery(async () => {
     if (!shownId) return [];
     const segs = await db.segments.where('transcriptId').equals(shownId).sortBy('index');
@@ -77,7 +81,7 @@ export default function CloudPage() {
               {!approvedTs.length && <div className="empty small">No access copies approved yet. Approve them on the Access copies page.</div>}
               {copies?.map((c) => (
                 <div key={c.segmentId} className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
-                  <span className="speaker-chip p">{transcripts.find((t) => t.id === c.transcriptId) ? 'P' : ''}</span>
+                  <span className="speaker-chip p">{label ?? 'P'}</span>
                   <div style={{ font: '16px/1.7 var(--read)' }}><Readable copy={c} /></div>
                 </div>
               ))}

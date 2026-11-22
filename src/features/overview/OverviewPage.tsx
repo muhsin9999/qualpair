@@ -6,6 +6,7 @@ import { studyStats } from '../../app/stats';
 import { PageHead } from '../../app/ui';
 import { agreementByCode } from '../../services/results';
 import { kappaBand } from '../../domain/stats/agreement';
+import { SAMPLE_SOURCE } from '../../services/sample';
 
 function median(xs: number[]) {
   if (!xs.length) return null;
@@ -118,6 +119,7 @@ export default function OverviewPage() {
             </tbody>
           </table>
         </div>
+        {project.isSample && <div className="tiny faint">Sample data: {SAMPLE_SOURCE}</div>}
       </div>
     </>
   );
