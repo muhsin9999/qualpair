@@ -41,7 +41,8 @@ export default function SamplePage() {
   const pid = usePid();
   const project = useProject(pid);
   const book = useCodebook(pid);
-  const sample = useLiveQuery(() => getSample(pid), [pid]);
+  const sampleRes = useLiveQuery(() => getSample(pid).then((x) => ({ x })), [pid]);
+  const sample = sampleRes?.x;
   const segs = useLiveQuery(async () => {
     const s = await getSample(pid);
     if (!s) return [];
@@ -100,7 +101,7 @@ export default function SamplePage() {
   }, [book, next, idx]);
 
   if (!project) return null;
-  if (sample === undefined) return null;
+  if (sampleRes === undefined) return null;
   if (!sample) return (<><PageHead title="Your sample" sub="Code these yourself. Both readers are scored against you." /><Setup pid={pid} /></>);
   if (!book) return (<><PageHead title="Your sample" /><div className="work"><div className="card empty">Write your codebook first.</div></div></>);
 

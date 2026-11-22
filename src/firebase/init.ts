@@ -26,7 +26,8 @@ declare global {
 /** Lazily initialise Firebase, App Check and AI Logic (Gemini Developer API backend). */
 export function getFirebaseAI(): AI {
   if (ai) return ai;
-  const debugToken = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN as string | undefined;
+  // The debug token is for local development only and must never reach a production build.
+  const debugToken = import.meta.env.DEV ? (import.meta.env.VITE_APPCHECK_DEBUG_TOKEN as string | undefined) : undefined;
   if (debugToken && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
   }

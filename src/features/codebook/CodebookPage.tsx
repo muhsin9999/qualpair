@@ -2,9 +2,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { Cloud, Download, Laptop, Plus, Trash2 } from 'lucide-react';
 import { db } from '../../db/db';
-import { codeColor, usePid, useCodebook, useProject } from '../../app/hooks';
+import { codeColor, usePid, useProject } from '../../app/hooks';
 import { PageHead } from '../../app/ui';
-import { ledgerSink, newCode, saveCodebook } from '../../services/core';
+import { currentCodebook, ledgerSink, newCode, saveCodebook } from '../../services/core';
 import { agreementByCode } from '../../services/results';
 import { getCloudReader } from '../../ai/registry';
 import { formatKappa, kappaBand } from '../../domain/stats/agreement';
@@ -15,7 +15,8 @@ import { CloudTermsNotice } from '../cloud/CloudTermsNotice';
 export default function CodebookPage() {
   const pid = usePid();
   const project = useProject(pid);
-  const book = useCodebook(pid);
+  const loaded = useLiveQuery(() => currentCodebook(pid).then((b) => ({ b })), [pid]);
+  const book = loaded?.b;
   const ag = useLiveQuery(() => agreementByCode(pid), [pid]);
   const machineCoded = useLiveQuery(() => db.codings.where('projectId').equals(pid).filter((c) => c.coder !== 'human').count(), [pid]);
   const [draft, setDraft] = useState<Code[] | null>(null);
@@ -26,9 +27,8 @@ export default function CodebookPage() {
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
-    if (book && !draft) setDraft(structuredClone(book.codes));
-    if (book === undefined && draft === null) setDraft([]);
-  }, [book, draft]);
+    if (loaded && draft === null) setDraft(structuredClone(loaded.b?.codes ?? []));
+  }, [loaded, draft]);
   useEffect(() => {
     if (project) setRq(project.researchQuestion);
   }, [project]);
