@@ -16,6 +16,7 @@ const CodeDetail = lazy(() => import('../features/agreement/CodeDetailPage'));
 const Review = lazy(() => import('../features/review/ReviewPage'));
 const Report = lazy(() => import('../features/report/ReportPage'));
 const Activity = lazy(() => import('../features/activity/ActivityPage'));
+const Eval = lazy(() => import('../features/eval/EvalPage'));
 
 function ProjectLayout() {
   return (
@@ -37,6 +38,7 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<ProjectsPage />} />
+        <Route path="/eval" element={<Suspense fallback={null}><Eval /></Suspense>} />
         <Route path="/p/:pid" element={<ProjectLayout />}>
           <Route index element={<Overview />} />
           <Route path="interviews" element={<Interviews />} />

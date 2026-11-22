@@ -123,6 +123,9 @@ export function ProjectsPage() {
           )}
         </div>
         {err && <div className="notice">{err}</div>}
+        <div className="small faint" style={{ marginTop: 20 }}>
+          Your studies are stored only in this browser. <Link to="/eval">How accurate are the readers?</Link>
+        </div>
       </div>
     </div>
   );
