@@ -1,7 +1,33 @@
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-})
+  plugins: [
+    react(),
+    // Offline support: the app shell, the sample interviews and the fonts are cached,
+    // so importing, coding your sample, the laptop reader and access copies all work with Wi-Fi off.
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'sample/interviews.json'],
+      manifest: {
+        name: 'QualCheck',
+        short_name: 'QualCheck',
+        description: 'Code qualitative interviews with a laptop reader, a cloud reader and you as the yardstick.',
+        theme_color: '#1d2422',
+        background_color: '#f3f1ec',
+        display: 'standalone',
+        icons: [{ src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,json}'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        navigateFallback: '/index.html',
+        runtimeCaching: [
+          { urlPattern: /^https:\/\/fonts\.googleapis\.com\//, handler: 'StaleWhileRevalidate', options: { cacheName: 'fonts-css' } },
+          { urlPattern: /^https:\/\/fonts\.gstatic\.com\//, handler: 'CacheFirst', options: { cacheName: 'fonts', expiration: { maxEntries: 30, maxAgeSeconds: 31536000 } } },
+        ],
+      },
+    }),
+  ],
+});
