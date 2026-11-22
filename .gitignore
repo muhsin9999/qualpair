@@ -1,0 +1,17 @@
+node_modules/
+dist/
+notes/
+data/
+.env*
+*.local
+.firebase/
+tools/nano-check/private/
+test-results/
+playwright-report/
+.claude/
+coverage/
+*.tsbuildinfo
+mockups/*
+!mockups/pen/
+mockups/pen/*
+!mockups/pen/v3/

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laptop reader check</title>
+<style>
+  :root { --paper:#F5F0E6; --raised:#FBF8F2; --ink:#1E1A16; --ink2:#5E564C; --rule:#D8CFC0; --rubric:#B0281A; --device:#2E6B5E; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 Georgia, serif; }
+  main { max-width:680px; margin:40px auto; padding:28px 32px; background:var(--raised); border:1px solid var(--rule); }
+  h1 { margin:0 0 6px; font-size:28px; }
+  p { color:var(--ink2); }
+  button { font:600 16px Georgia, serif; padding:12px 18px; margin:6px 8px 6px 0; background:var(--ink); color:var(--paper); border:0; cursor:pointer; }
+  button:disabled { opacity:.35; cursor:default; }
+  .row { display:flex; gap:12px; align-items:center; margin:14px 0; }
+  .label { width:150px; color:var(--ink2); font-size:14px; }
+  .val { font:600 15px ui-monospace, monospace; }
+  .bar { height:10px; background:var(--rule); flex:1; } .bar i { display:block; height:100%; width:0; background:var(--device); transition:width .3s; }
+  pre { background:var(--paper); border:1px solid var(--rule); padding:12px; white-space:pre-wrap; font-size:13px; }
+  .bad { color:var(--rubric); } .good { color:var(--device); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Laptop reader check</h1>
+  <p>This page checks whether Chrome can run Google's on-device AI (Gemini Nano) on this laptop and starts the one-time download. Nothing you type here leaves the laptop.</p>
+
+  <div class="row"><span class="label">Chrome support</span><span class="val" id="api">checking…</span></div>
+  <div class="row"><span class="label">Model status</span><span class="val" id="status">checking…</span></div>
+  <div class="row"><span class="label">Download</span><div class="bar"><i id="bar"></i></div><span class="val" id="pct">–</span></div>
+
+  <button id="dl">Start download</button>
+  <button id="test" disabled>Run a test prompt</button>
+  <button id="re">Re-check status</button>
+
+  <pre id="log">Log:</pre>
+</main>
+<script>
+const OPTS = { expectedInputs: [{ type: 'text', languages: ['en'] }], expectedOutputs: [{ type: 'text', languages: ['en'] }] };
+const $ = id => document.getElementById(id);
+const log = m => { $('log').textContent += '\n' + new Date().toLocaleTimeString() + '  ' + m; };
+let session = null;
+
+async function check() {
+  if (!('LanguageModel' in self)) {
+    $('api').textContent = 'not available in this Chrome'; $('api').className = 'val bad';
+    $('status').textContent = '–'; $('dl').disabled = true;
+    log('LanguageModel API missing. Chrome version: ' + (navigator.userAgentData?.brands?.map(b => b.brand + ' ' + b.version).join(', ') || navigator.userAgent));
+    return;
+  }
+  $('api').textContent = 'yes'; $('api').className = 'val good';
+  try {
+    const a = await LanguageModel.availability(OPTS);
+    $('status').textContent = a;
+    $('status').className = 'val ' + (a === 'available' ? 'good' : a === 'unavailable' ? 'bad' : '');
+    $('test').disabled = a !== 'available';
+    $('dl').disabled = a === 'available' || a === 'unavailable';
+    log('availability = ' + a + (a === 'unavailable' ? '  (open chrome://on-device-internals to see why)' : ''));
+    if (a === 'available') { $('bar').style.width = '100%'; $('pct').textContent = '100%'; }
+  } catch (e) { $('status').textContent = 'error'; log('availability error: ' + e.message); }
+}
+
+$('dl').onclick = async () => {
+  $('dl').disabled = true; log('Starting download… keep this tab open. On a slow connection this can take a long time; you can close it and press the button again later — Chrome resumes.');
+  try {
+    session = await LanguageModel.create({ ...OPTS, monitor(m) {
+      m.addEventListener('downloadprogress', e => {
+        const p = Math.round(e.loaded * 100);
+        $('bar').style.width = p + '%'; $('pct').textContent = p + '%';
+        if (p % 5 === 0) log('download ' + p + '%');
+      });
+    }});
+    log('Model ready.'); check();
+  } catch (e) { log('create() error: ' + e.name + ': ' + e.message); $('dl').disabled = false; }
+};
+
+$('test').onclick = async () => {
+  try {
+    session = session || await LanguageModel.create(OPTS);
+    const t0 = performance.now();
+    const out = await session.prompt('An interview participant said: "The bus fare to the clinic is too much for me most weeks." In one short sentence, what barrier to healthcare is this?');
+    log('Test answer (' + Math.round(performance.now() - t0) + ' ms): ' + out);
+  } catch (e) { log('prompt error: ' + e.name + ': ' + e.message); }
+};
+$('re').onclick = check;
+check();
+</script>
+</body>
+</html>
