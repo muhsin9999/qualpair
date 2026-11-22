@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Nav } from './Nav';
+import { ErrorBoundary } from './ErrorBoundary';
 import { ProjectsPage } from '../features/projects/ProjectsPage';
 
 const Overview = lazy(() => import('../features/overview/OverviewPage'));
@@ -21,9 +22,11 @@ function ProjectLayout() {
     <div className="shell">
       <Nav />
       <main className="main">
-        <Suspense fallback={<div className="empty">Loading…</div>}>
-          <Outlet />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<div className="empty">Loading…</div>}>
+            <Outlet />
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   );

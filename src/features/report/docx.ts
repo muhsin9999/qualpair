@@ -73,8 +73,8 @@ export async function buildDocx(d: ReportData, order: SectionId[]): Promise<Blob
       kids.push(...caption('Table', '3', 'Intercoder Agreement by Code'));
       const rows = d.agreement.slice().sort((a, b) => Math.min(a.laptop?.kappa ?? 1, a.cloud?.kappa ?? 1) - Math.min(b.laptop?.kappa ?? 1, b.cloud?.kappa ?? 1));
       const mark = (k: number | null | undefined) => (k == null ? '—' : `${formatKappa(k)}${k < d.threshold ? 'ᵃ' : ''}`);
-      kids.push(apaTable(['Code', 'n', 'Agreement (L)', 'κ R–L', 'κ R–C'], rows.map((r) => [r.code.name, String(r.nLaptop || r.nCloud), r.laptop ? `${Math.round(r.laptop.po * 100)}%` : '—', mark(r.laptop?.kappa), mark(r.cloud?.kappa)]), [1, 2, 3, 4]));
-      kids.push(p(`Note. R = researcher; L = laptop reader (Gemini Nano, on device); C = cloud reader. n = paragraphs in the researcher’s sample. Sorted from weakest agreement. — = κ undefined because the code was used in all or none of the sample. ᵃ Below the pass mark of κ = ${d.threshold.toFixed(2)}, set before coding.`, { size: 18 }));
+      kids.push(apaTable(['Code', 'n', 'Agreement (L)', 'κ R–L', 'κ R–C'], rows.map((r) => [r.code.name, String(r.nLaptop || r.nCloud), r.laptop ? `${Math.round(r.laptop.po * 100)}%` : '—', r.insufficient ? '—' : mark(r.laptop?.kappa), r.insufficient ? '—' : mark(r.cloud?.kappa)]), [1, 2, 3, 4]));
+      kids.push(p(`Note. R = researcher; L = laptop reader (Gemini Nano, on device); C = cloud reader. n = paragraphs in the researcher’s sample. Sorted from weakest agreement. — = not measurable because the researcher used the code in all or none of the sample. ᵃ Below the pass mark of κ = ${d.threshold.toFixed(2)}, set before coding.`, { size: 18 }));
     } else if (id === 'fig-agreement') {
       kids.push(...caption('Figure', '2', 'Agreement Between Each AI Reader and the Researcher, by Code (Cohen’s κ)'));
       kids.push(await figure(agreementSvg(d.agreement, d.threshold, 560)));

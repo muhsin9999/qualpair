@@ -24,6 +24,7 @@ function KBar({ k, threshold, color }: { k: number | null; threshold: number; co
 }
 
 function status(c: CodeAgreement, t: number) {
+  if (c.insufficient) return 'Not in your sample';
   const l = c.laptop?.kappa ?? null;
   const cl = c.cloud?.kappa ?? null;
   if (l === null && cl === null) return null;
@@ -43,7 +44,8 @@ export default function AgreementPage() {
   const s = useLiveQuery(() => studyStats(pid), [pid]);
   if (!project || !ag || !s) return null;
   const scored = ag.codes.filter((c) => c.laptop || c.cloud);
-  const passing = scored.filter((c) => c.passes).length;
+  const judged = scored.filter((c) => !c.insufficient);
+  const passing = judged.filter((c) => c.passes).length;
   const t = ag.threshold;
   const sorted = ag.codes.slice().sort((a, b) => (Math.min(a.laptop?.kappa ?? 1, a.cloud?.kappa ?? 1)) - (Math.min(b.laptop?.kappa ?? 1, b.cloud?.kappa ?? 1)));
 
@@ -60,7 +62,7 @@ export default function AgreementPage() {
         ) : (
           <>
             <div>
-              <div className="row" style={{ alignItems: 'baseline' }}><span className="big">{passing} of {ag.codes.length}</span><span className="muted" style={{ fontSize: 16 }}>codes reach the pass mark</span></div>
+              <div className="row" style={{ alignItems: 'baseline' }}><span className="big">{passing} of {judged.length}</span><span className="muted" style={{ fontSize: 16 }}>codes reach the pass mark</span></div>
               <div className="small faint" style={{ marginTop: 4 }}>
                 Cohen’s κ on the {ag.humanDone} paragraphs you coded yourself · pass mark {t.toFixed(2)}, set before the readers ran · 0.61–0.80 = substantial
               </div>
@@ -87,7 +89,7 @@ export default function AgreementPage() {
                         <td><KBar k={c.cloud?.kappa ?? null} threshold={t} color="var(--cloud)" /></td>
                         <td style={{ width: 150 }}>
                           <span className="row" style={{ justifyContent: 'flex-end' }}>
-                            {st && <span className="pill attn">{st}</span>}
+                            {st && <span className={`pill ${c.insufficient ? 'neutral' : 'attn'}`}>{st}</span>}
                             <ChevronRight size={16} color="var(--ink3)" />
                           </span>
                         </td>
@@ -98,7 +100,7 @@ export default function AgreementPage() {
               </table>
             </div>
             <div className="small faint">
-              κ is “—” when a code was never (or always) used in your sample, so agreement can’t be measured. Codes below the pass mark are left out of the report until their definition is clearer.
+              κ is “—” when a code was never (or always) used in your sample, so agreement can’t be measured. Codes below the pass mark are left out of the report until their definition is clearer. “Not in your sample” means you never applied the code in your sample, so it can’t be judged yet.
             </div>
           </>
         )}

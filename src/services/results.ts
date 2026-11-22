@@ -35,6 +35,8 @@ export interface CodeAgreement {
   cloud: AgreementResult | null;
   laptopVsCloud: AgreementResult | null;
   passes: boolean;
+  /** You never used this code in your sample, so agreement can't be judged yet. */
+  insufficient: boolean;
 }
 
 export async function agreementByCode(projectId: string): Promise<{ codes: CodeAgreement[]; sampleSize: number; humanDone: number; threshold: number }> {
@@ -57,11 +59,13 @@ export async function agreementByCode(projectId: string): Promise<{ codes: CodeA
     const c = pair('human', 'cloud');
     const lc = pair('device', 'cloud');
     const ks = [l.r?.kappa, c.r?.kappa].filter((k): k is number => typeof k === 'number');
+    const humanApplied = humanSegs.filter((id) => index.get(id)?.human?.get(code.id)).length;
     return {
       code,
       nLaptop: l.n,
       nCloud: c.n,
-      humanApplied: humanSegs.filter((id) => index.get(id)?.human?.get(code.id)).length,
+      humanApplied,
+      insufficient: humanApplied === 0,
       laptop: l.r,
       cloud: c.r,
       laptopVsCloud: lc.r,

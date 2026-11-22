@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BookOpenCheck, Cloud, Laptop, Play, Plus } from 'lucide-react';
+import { ArrowRight, BookOpenCheck, Cloud, Laptop, Play, Plus, Trash2 } from 'lucide-react';
 import { db } from '../../db/db';
-import { createProject } from '../../services/core';
+import { createProject, deleteProject } from '../../services/core';
 import { loadSampleProject } from '../../services/sample';
 import { agreementByCode } from '../../services/results';
 import { studyStats } from '../../app/stats';
@@ -36,7 +36,13 @@ function StudyCard({ p }: { p: Project }) {
   }
   return (
     <Link to={`/p/${p.id}`} className="card lift pad stack" style={{ textDecoration: 'none', gap: 8 }}>
-      <div style={{ fontSize: 17, fontWeight: 800 }}>{p.name}</div>
+      <div className="row">
+        <div style={{ fontSize: 17, fontWeight: 800, flex: 1 }}>{p.name}</div>
+        <button className="btn ghost small" aria-label={`Delete ${p.name}`} title="Delete study"
+          onClick={(e) => { e.preventDefault(); if (confirm(`Delete “${p.name}” and everything in it from this browser?`)) void deleteProject(p.id); }}>
+          <Trash2 size={14} />
+        </button>
+      </div>
       <div className="small faint">{s ? `${s.interviews} interviews` : '…'} · {new Date(p.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</div>
       <div className="row small" style={{ gap: 14, minHeight: 20 }}>
         {kl !== null && <span className="row laptop" style={{ gap: 5, fontWeight: 700 }}><Laptop size={14} /> κ {kl.toFixed(2)} {kappaBand(kl)}</span>}

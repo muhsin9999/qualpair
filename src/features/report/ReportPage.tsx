@@ -78,8 +78,8 @@ function Section({ id, d, accent }: { id: SectionId; d: ReportData; accent: stri
         <div>
           <div className="fig-num">Table 3</div><div className="fig-title">Intercoder Agreement by Code</div>
           <table className="apa"><thead><tr><th>Code</th><th className="num">n</th><th className="num">Agreement</th><th className="num">κ R–L</th><th className="num">κ R–C</th></tr></thead>
-            <tbody>{rows.map((r) => <tr key={r.code.id}><td>{r.code.name}</td><td className="num">{r.nLaptop || r.nCloud}</td><td className="num">{r.laptop ? `${Math.round(r.laptop.po * 100)}%` : '—'}</td><td className="num">{cell(r.laptop?.kappa)}</td><td className="num">{cell(r.cloud?.kappa)}</td></tr>)}</tbody></table>
-          <div className="note"><i>Note.</i> R = researcher; L = laptop reader (Gemini Nano, on device); C = cloud reader. n = paragraphs in the researcher’s sample. Agreement = observed agreement, researcher vs laptop reader. — = κ undefined (code used in all or none of the sample). <sup>a</sup> Below the pass mark of κ = {d.threshold.toFixed(2)}, set before coding.</div>
+            <tbody>{rows.map((r) => <tr key={r.code.id}><td>{r.code.name}</td><td className="num">{r.nLaptop || r.nCloud}</td><td className="num">{r.laptop ? `${Math.round(r.laptop.po * 100)}%` : '—'}</td><td className="num">{r.insufficient ? '—' : cell(r.laptop?.kappa)}</td><td className="num">{r.insufficient ? '—' : cell(r.cloud?.kappa)}</td></tr>)}</tbody></table>
+          <div className="note"><i>Note.</i> R = researcher; L = laptop reader (Gemini Nano, on device); C = cloud reader. n = paragraphs in the researcher’s sample. Agreement = observed agreement, researcher vs laptop reader. — = not measurable (the researcher used the code in all or none of the sample). <sup>a</sup> Below the pass mark of κ = {d.threshold.toFixed(2)}, set before coding.</div>
         </div>
       );
     }

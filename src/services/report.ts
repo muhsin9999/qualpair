@@ -123,7 +123,7 @@ export async function buildReport(projectId: string): Promise<ReportData | undef
     });
     const a = ag.codes.find((x) => x.code.id === code.id);
     const scored = a && (a.laptop || a.cloud);
-    return { code, participants: byP.size, paragraphs: hits.length, quotes, heldBack: !!scored && !a!.passes };
+    return { code, participants: byP.size, paragraphs: hits.length, quotes, heldBack: !!scored && !a!.insufficient && !a!.passes };
   });
   themes.sort((a, b) => b.participants - a.participants || b.paragraphs - a.paragraphs);
 

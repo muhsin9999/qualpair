@@ -28,7 +28,7 @@ export function prevalenceSvg(themes: ThemeRow[], total: number, highlightId: st
 }
 
 export function agreementSvg(rows: CodeAgreement[], threshold: number, width = 520): string {
-  const data = rows.filter((r) => r.laptop?.kappa != null || r.cloud?.kappa != null).sort((a, b) => Math.min(a.laptop?.kappa ?? 1, a.cloud?.kappa ?? 1) - Math.min(b.laptop?.kappa ?? 1, b.cloud?.kappa ?? 1));
+  const data = rows.filter((r) => !r.insufficient && (r.laptop?.kappa != null || r.cloud?.kappa != null)).sort((a, b) => Math.min(a.laptop?.kappa ?? 1, a.cloud?.kappa ?? 1) - Math.min(b.laptop?.kappa ?? 1, b.cloud?.kappa ?? 1));
   const labelW = 170;
   const plotW = width - labelW - 20;
   const rowH = 22;
