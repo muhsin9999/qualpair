@@ -13,12 +13,12 @@ test('real cloud reader codes approved access copies', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'UK healthcare study (sample)' })).toBeVisible({ timeout: 30_000 });
   await page.getByRole('link', { name: 'Access copies' }).click();
   await expect(page.getByText('Always hide')).toBeVisible();
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < Number(process.env.APPROVE ?? 2); i++) {
     await page.getByRole('button', { name: /^Approve Interview/ }).click();
     await page.waitForTimeout(400);
   }
   await page.getByRole('link', { name: 'Cloud reader' }).click();
-  await page.getByRole('button', { name: /Send 2 access copies/ }).click();
+  await page.getByRole('button', { name: new RegExp(`Send ${process.env.APPROVE ?? 2} access cop`) }).click();
   await expect(page.getByRole('button', { name: 'All approved copies coded' })).toBeVisible({ timeout: 480_000 });
   await page.getByRole('link', { name: 'AI activity' }).click();
   await expect(page.getByText('calls to the cloud')).toBeVisible();
