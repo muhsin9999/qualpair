@@ -3,6 +3,8 @@
  * Changing a type here is a contract change: update the Dexie schema and tests with it.
  */
 
+import type { DeidSettings } from './domain/deid/rules';
+
 export type Id = string;
 
 /** Who produced a coding decision. */
@@ -21,6 +23,8 @@ export interface Project {
   /** Share of segments in the calibration sample (0–1). */
   sampleShare: number;
   isSample: boolean;
+  /** What to hide in access copies (names list, rules). */
+  deid: DeidSettings;
   createdAt: number;
   updatedAt: number;
 }
