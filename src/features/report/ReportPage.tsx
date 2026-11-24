@@ -9,6 +9,7 @@ import {
   buildReport, dataFlowText, limitationsText, methodText, reportSettings, saveReportSettings, SECTIONS, summarySentences, type ReportData, type SectionId,
 } from '../../services/report';
 import { downloadBlob, downloadText, qdcXml, toCsv } from '../../services/export';
+import { PagedPreview } from './PagedPreview';
 import { ACCENTS, agreementSvg, matrixSvg, prevalenceSvg, svgToPng } from './figures';
 import { buildDocx } from './docx';
 import { coreqRows } from './coreq';
@@ -19,7 +20,7 @@ import type { ReportSettings } from '../../types';
 const FIGS: SectionId[] = ['fig-prevalence', 'fig-agreement', 'app-matrix'];
 
 function Svg({ svg }: { svg: string }) {
-  return <div style={{ width: '100%', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: svg.replace(/width="[\d.]+" height="[\d.]+"/, 'width="100%"') }} />;
+  return <div className="svg-fig" style={{ width: '100%', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: svg.replace(/width="[\d.]+" height="[\d.]+"/, 'width="100%"') }} />;
 }
 
 function Section({ id, d, accent }: { id: SectionId; d: ReportData; accent: string }) {
@@ -128,6 +129,11 @@ export default function ReportPage() {
   const [sel, setSel] = useState<SectionId>('fig-prevalence');
   const [busy, setBusy] = useState('');
   const [accentIdx, setAccentIdx] = useState(0);
+  const [jump, setJump] = useState<{ id: string; n: number }>();
+  const pick = (id: SectionId) => {
+    setSel(id);
+    setJump((j) => ({ id, n: (j?.n ?? 0) + 1 }));
+  };
   if (!settings || !d) return null;
   const accent = ACCENTS[accentIdx]!;
   const order = (settings.sectionOrder.filter((s) => SECTIONS.some((x) => x.id === s)) as SectionId[]).concat(SECTIONS.map((s) => s.id).filter((id) => !settings.sectionOrder.includes(id)));
@@ -180,8 +186,8 @@ export default function ReportPage() {
         <button className="btn primary" onClick={() => { document.body.classList.add('print-report'); window.print(); document.body.classList.remove('print-report'); }}><Printer size={16} /> Export PDF</button>
       </PageHead>
       {busy && <div className="notice neutral" style={{ margin: '12px 32px 0' }}>{busy}</div>}
-      <div className="work" style={{ paddingTop: 16 }}>
-        <div className="stack" style={{ width: 240, flex: 'none', gap: 2 }}>
+      <div className="work fill" style={{ paddingTop: 16 }}>
+        <div className="stack side-col" style={{ width: 240, flex: 'none', gap: 2 }}>
           <label className="field" style={{ marginBottom: 10 }}>
             <span className="small faint" style={{ fontWeight: 400 }}>Template</span>
             <select className="select" style={{ fontWeight: 700 }} value={settings.template} onChange={(e) => save({ template: e.target.value as ReportSettings['template'] })}>
@@ -197,7 +203,7 @@ export default function ReportPage() {
               <div key={id} className="row" style={{ padding: '5px 6px', borderRadius: 7, border: sel === id ? '1.5px solid var(--ink)' : '1.5px solid transparent', background: sel === id ? 'var(--page)' : undefined, gap: 4 }}>
                 <button className="btn ghost small" style={{ padding: 2 }} onClick={() => move(id, -1)} aria-label="Move up"><ArrowUp size={12} /></button>
                 <button className="btn ghost small" style={{ padding: 2 }} onClick={() => move(id, 1)} aria-label="Move down"><ArrowDown size={12} /></button>
-                <button onClick={() => setSel(id)} style={{ flex: 1, textAlign: 'left', border: 0, background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: sel === id ? 700 : 400, color: hidden ? 'var(--ink3)' : 'var(--ink)' }}>{label}</button>
+                <button onClick={() => pick(id)} style={{ flex: 1, textAlign: 'left', border: 0, background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: sel === id ? 700 : 400, color: hidden ? 'var(--ink3)' : 'var(--ink)' }}>{label}</button>
                 <button className="btn ghost small" style={{ padding: 2 }} aria-label={hidden ? 'Show section' : 'Hide section'} onClick={() => save({ hiddenSections: hidden ? settings.hiddenSections.filter((x) => x !== id) : [...settings.hiddenSections, id] })}>
                   {hidden ? <EyeOff size={14} color="var(--rule)" /> : <Eye size={14} color="var(--ink3)" />}
                 </button>
@@ -211,19 +217,16 @@ export default function ReportPage() {
           <button className="btn small" onClick={backup}><Download size={14} /> Study backup (.json)</button>
         </div>
 
-        <div className="grow" style={{ display: 'flex', justifyContent: 'center', overflow: 'auto' }}>
-          <div className="a4 report-print">
-            <div style={{ font: '9px var(--ui)', color: '#707071', borderBottom: '1px solid #E3E3E3', paddingBottom: 6, marginBottom: 10 }}>{d.settings.title}</div>
-            {d.practice && <div className="notice" style={{ fontFamily: 'var(--ui)', fontSize: 10, marginBottom: 8 }}>Draft made with practice readers (keyword rules, no AI). Not for reporting.</div>}
-            {visible.map((id) => (
-              <div key={id} className={sel === id ? 'sel-block' : ''} onClick={() => setSel(id)} style={{ marginBottom: 14, cursor: 'pointer' }}>
-                <Section id={id} d={d} accent={accent} />
-              </div>
-            ))}
-          </div>
-        </div>
+        <PagedPreview header={d.settings.title} jump={jump}>
+          {d.practice && <div className="notice" style={{ fontFamily: 'var(--ui)', fontSize: 10, marginBottom: 8 }}>Draft made with practice readers (keyword rules, no AI). Not for reporting.</div>}
+          {visible.map((id) => (
+            <div key={id} data-sec={id} className={sel === id ? 'sel-block' : ''} onClick={() => setSel(id)} style={{ marginBottom: 14, cursor: 'pointer' }}>
+              <Section id={id} d={d} accent={accent} />
+            </div>
+          ))}
+        </PagedPreview>
 
-        <div className="card stack" style={{ width: 280, flex: 'none', padding: 0, gap: 0 }}>
+        <div className="card stack side-col" style={{ width: 280, flex: 'none', padding: 0, gap: 0, alignSelf: 'flex-start', maxHeight: '100%' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--rule)', fontWeight: 800 }}>{SECTIONS.find((s) => s.id === sel)?.label}</div>
           {sel === 'cover' && (
             <div className="stack" style={{ padding: 16 }}>

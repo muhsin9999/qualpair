@@ -15,3 +15,5 @@ mockups/*
 !mockups/pen/
 mockups/pen/*
 !mockups/pen/v3/
+.rep-shot.mjs
+.rep-dbg.mjs
