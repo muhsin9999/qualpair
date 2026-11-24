@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, ChevronLeft, ChevronRight, Cloud, Laptop, Lock, MousePointerClick, Plus, X } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ArrowRight, Check, ChevronLeft, ChevronRight, Cloud, EyeOff, Laptop, Lock, Plus, X } from 'lucide-react';
 import { db } from '../../db/db';
 import { usePid, useProject, useTranscripts } from '../../app/hooks';
 import { PageHead } from '../../app/ui';
+import { Select } from '../../app/Select';
 import { approveTranscript, buildAccessCopies, decideTerm, rebuildAllAccessCopies, setRedactionStatus, suggestWithLaptop } from '../../services/access';
 import { getDeviceReader } from '../../ai/registry';
 import type { AccessCopy, Redaction, Segment } from '../../types';
@@ -16,7 +18,7 @@ function Original({ seg, copy }: { seg: Segment; copy?: AccessCopy }) {
     out.push(seg.text.slice(pos, r.start));
     const cls = r.status === 'pending' ? 'pending-word' : r.status === 'kept' ? '' : 'hidden-word';
     out.push(
-      <span key={i} className={cls} title={r.status === 'kept' ? 'Kept visible' : r.status === 'pending' ? 'Waiting for your choice' : `Hidden as [${r.placeholder}] · click to keep`} style={{ cursor: 'pointer' }}
+      <span key={i} className={`${cls} toggle-word`} title={r.status === 'kept' ? 'Visible to the cloud reader · click to hide again' : r.status === 'pending' ? 'Waiting for your choice' : `Hidden as [${r.placeholder}] · click to keep it visible`}
         onClick={() => setRedactionStatus(seg.id, r.start, r.status === 'kept' ? 'hidden' : 'kept')}>
         {seg.text.slice(r.start, r.end)}
       </span>,
@@ -42,6 +44,40 @@ function CopyText({ seg, copy }: { seg: Segment; copy?: AccessCopy }) {
   return <>{out}</>;
 }
 
+const KINDS = ['person', 'place', 'organisation', 'other'] as const;
+type Kind = (typeof KINDS)[number];
+
+/** A small toolbar that floats just above the words you selected in the original. */
+function HidePopover({ sel, onHide, onClose }: { sel: { text: string; x: number; y: number; below?: boolean }; onHide: (k: Kind) => void; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const down = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const away = () => onClose();
+    document.addEventListener('mousedown', down);
+    document.addEventListener('keydown', key);
+    window.addEventListener('scroll', away, true);
+    window.addEventListener('resize', away);
+    ref.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    return () => {
+      document.removeEventListener('mousedown', down);
+      document.removeEventListener('keydown', key);
+      window.removeEventListener('scroll', away, true);
+      window.removeEventListener('resize', away);
+    };
+  }, [onClose]);
+  return createPortal(
+    <div ref={ref} className={sel.below ? 'hide-pop below' : 'hide-pop'} role="dialog" aria-label={`Hide ${sel.text}`} style={{ left: sel.x, top: sel.y }}>
+      <div className="hide-pop-t"><EyeOff size={14} /> Hide “<span className="hide-pop-w">{sel.text}</span>” as</div>
+      <div className="row" style={{ gap: 4 }}>
+        {KINDS.map((k) => <button key={k} type="button" onClick={() => onHide(k)}>{k[0]!.toUpperCase() + k.slice(1)}</button>)}
+      </div>
+      <div className="tiny" style={{ opacity: 0.65 }}>Hidden in every interview. Click the word later to undo.</div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function AccessPage() {
   const pid = usePid();
   const project = useProject(pid);
@@ -51,11 +87,13 @@ export default function AccessPage() {
   const approvals = useLiveQuery(async () => new Set((await db.approvals.where('projectId').equals(pid).toArray()).map((a) => a.transcriptId)), [pid]);
   const segs = useLiveQuery(async () => (t ? (await db.segments.where('transcriptId').equals(t.id).sortBy('index')).filter((s) => !s.isInterviewer) : []), [t?.id]);
   const copies = useLiveQuery(async () => (t ? new Map((await db.accessCopies.where('transcriptId').equals(t.id).toArray()).map((c) => [c.segmentId, c])) : new Map<string, AccessCopy>()), [t?.id]);
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const [newTerm, setNewTerm] = useState('');
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
-  const [selection, setSelection] = useState('');
+  const [sel, setSel] = useState<{ text: string; x: number; y: number; below?: boolean } | null>(null);
+  const [newKind, setNewKind] = useState<Kind>('person');
+  const closeSel = useCallback(() => setSel(null), []);
 
   useEffect(() => {
     if (t && copies && copies.size === 0 && segs && segs.length) void buildAccessCopies(t.id);
@@ -85,14 +123,25 @@ export default function AccessPage() {
     await db.projects.update(pid, { deid: next });
     await rebuildAllAccessCopies(pid);
   }
-  async function addTerm(term: string) {
-    const clean = term.trim();
+  async function addTerm(term: string, kind: Kind) {
+    const clean = term.trim().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
     if (!clean || !project) return;
-    const n = project.deid.alwaysHide.length + 1;
-    const placeholder = prompt(`What should “${clean}” become in the access copy?`, `person ${n}`) ?? `person ${n}`;
-    await saveDeid({ ...project.deid, alwaysHide: [...project.deid.alwaysHide, { term: clean, placeholder }] });
+    if (project.deid.alwaysHide.some((h) => h.term.toLowerCase() === clean.toLowerCase())) { setSel(null); return; }
+    const n = project.deid.alwaysHide.filter((h) => h.placeholder.startsWith(kind)).length + 1;
+    await saveDeid({ ...project.deid, alwaysHide: [...project.deid.alwaysHide, { term: clean, placeholder: `${kind} ${n}` }] });
     setNewTerm('');
-    setSelection('');
+    setSel(null);
+  }
+  /** Selecting words in the original opens the hide toolbar right above them. */
+  function onSelect() {
+    const s = window.getSelection();
+    const text = s?.toString().trim() ?? '';
+    const node = s?.anchorNode;
+    const inOriginal = !!node && !!(node.nodeType === 1 ? (node as Element) : node.parentElement)?.closest('.orig-col');
+    if (!s || s.isCollapsed || !text || text.length > 60 || !inOriginal) return;
+    const r = s.getRangeAt(0).getBoundingClientRect();
+    const below = r.top < 110;
+    setSel({ text, x: r.left + r.width / 2, y: below ? r.bottom + 10 : r.top - 10, below });
   }
   async function approve() {
     setErr('');
@@ -120,17 +169,18 @@ export default function AccessPage() {
         <button className="btn small" disabled={ti === 0} onClick={() => setTi(ti - 1)} aria-label="Previous interview"><ChevronLeft size={16} /></button>
         <button className="btn small" disabled={ti >= transcripts.length - 1} onClick={() => setTi(ti + 1)} aria-label="Next interview"><ChevronRight size={16} /></button>
       </PageHead>
+      {sel && <HidePopover sel={sel} onClose={closeSel} onHide={(k) => void addTerm(sel.text, k)} />}
       <div className="work pane">
-        <div className="paper grow" style={{ padding: '0 30px 22px' }} onMouseUp={() => setSelection(window.getSelection()?.toString().trim() ?? '')}>
+        <div className="paper grow" style={{ padding: '0 30px 22px' }} onMouseUp={onSelect} onKeyUp={(e) => e.shiftKey && onSelect()}>
           <div className="row pane-head" style={{ gap: 32 }}>
-            <span className="row grow small" style={{ fontWeight: 700, color: 'var(--ink2)' }}><Lock size={15} /> Original</span>
+            <span className="row grow small" style={{ fontWeight: 700, color: 'var(--ink2)' }}><Lock size={15} /> Original <span className="spacer" /><span className="sel-hint"><EyeOff size={13} /> Select words to hide them</span></span>
             <span className="row grow small cloud" style={{ fontWeight: 700 }}><Cloud size={15} /> What the cloud reader sees</span>
           </div>
-          {visible.length === 0 && <div className="empty small">Nothing hidden in this interview yet. Add names on the right, or show all paragraphs.</div>}
+          {visible.length === 0 && <div className="empty small">Nothing hidden in this interview yet. Show all paragraphs and select words to hide them.</div>}
           {visible.map((s) => (
             <Fragment key={s.id}>
               <div className="row" style={{ alignItems: 'flex-start', gap: 32, padding: '14px 0', borderBottom: '1px solid var(--rule)' }}>
-                <div className="grow" style={{ font: '15.5px/1.7 var(--read)' }}><Original seg={s} copy={copies?.get(s.id)} /></div>
+                <div className="grow orig-col" style={{ font: '15.5px/1.7 var(--read)' }}><Original seg={s} copy={copies?.get(s.id)} /></div>
                 <div className="grow" style={{ font: '15.5px/1.7 var(--read)' }}><CopyText seg={s} copy={copies?.get(s.id)} /></div>
               </div>
             </Fragment>
@@ -148,14 +198,14 @@ export default function AccessPage() {
                 </span>
               ))}
             </div>
-            <form className="row" onSubmit={(e) => { e.preventDefault(); void addTerm(newTerm); }}>
-              <input className="input" placeholder="Add a name or place" value={newTerm} onChange={(e) => setNewTerm(e.target.value)} />
-              <button className="btn small" type="submit" aria-label="Add"><Plus size={14} /></button>
+            <form className="stack" style={{ gap: 6 }} onSubmit={(e) => { e.preventDefault(); void addTerm(newTerm, newKind); }}>
+              <input className="input" placeholder="Type a name or place" aria-label="Name or place to hide" value={newTerm} onChange={(e) => setNewTerm(e.target.value)} />
+              <div className="row" style={{ gap: 6 }}>
+                <span className="small muted" style={{ flex: 'none' }}>Hide as</span>
+                <Select label="Hide as" style={{ flex: 1 }} value={newKind} onChange={setNewKind} options={KINDS.map((k) => ({ value: k, label: k[0]!.toUpperCase() + k.slice(1) }))} />
+                <button className="btn" type="submit" disabled={!newTerm.trim()}><Plus size={14} /> Add</button>
+              </div>
             </form>
-            {selection && selection.length < 60 && (
-              <button className="btn small" onClick={() => addTerm(selection)}><MousePointerClick size={14} /> Hide “{selection}”</button>
-            )}
-            {!selection && <span className="tiny faint row"><MousePointerClick size={13} /> Or select words in the original to hide them</span>}
           </div>
 
           <div className="card pad stack" style={{ gap: 8 }}>
@@ -167,7 +217,7 @@ export default function AccessPage() {
                 <span className="tiny faint">{g.n}×</span>
               </div>
             ))}
-            <span className="tiny faint">Click a word in the original to keep it visible.</span>
+            <span className="tiny faint">Click a hidden word in the original to keep it visible.</span>
           </div>
 
           <div className="card pad stack" style={{ gap: 8, background: pending.length ? 'var(--attn-tint)' : undefined, borderColor: pending.length ? 'var(--attn-line)' : undefined }}>
