@@ -131,8 +131,7 @@ a { color: inherit; }
 .dd-val { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dd-chev { color: var(--ink3); flex: none; transition: transform 0.15s; }
 .dd-chev.open { transform: rotate(180deg); }
-.dd-list { position: absolute; z-index: 40; left: 0; top: calc(100% + 6px); min-width: 100%; max-height: 280px; overflow: auto; margin: 0; padding: 4px; list-style: none; background: var(--page); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); }
-.dd-list.up { top: auto; bottom: calc(100% + 6px); }
+.dd-list { position: fixed; z-index: 60; max-height: 280px; overflow: auto; margin: 0; padding: 4px; list-style: none; background: var(--page); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); }
 .dd-opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; }
 .dd-opt.active { background: var(--sel); }
 .dd-opt.sel { font-weight: 700; }
@@ -186,11 +185,55 @@ mark.q { background: rgb(201 138 30 / 0.22); box-shadow: inset 0 -2.5px 0 var(--
 .empty { padding: 48px; text-align: center; color: var(--ink2); }
 .center-col { max-width: 1120px; margin: 0 auto; width: 100%; }
 
-/* Report page: the report as A4 sheets in their own scroll area */
-.work.fill { flex: 1; min-height: 0; align-items: stretch; padding-bottom: 0; }
-.work.fill > .side-col { overflow: auto; padding-bottom: 24px; }
-.paged { flex: 1; min-width: 0; overflow: auto; position: relative; display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 4px 8px 32px; }
-.a4-page { width: 640px; height: 905px; flex: none; position: relative; background: #fff; box-shadow: 0 4px 18px rgb(29 36 34 / 0.12); }
+/* Report page: a document editor. Toolbar on top, sections on the left, pages on a desk, settings on the right. */
+.editor { flex: 1; min-height: 0; display: flex; flex-direction: column; margin: 16px 32px 24px; background: var(--page); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; }
+.ed-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--rule); min-width: 0; }
+.ed-sep { width: 1px; height: 22px; background: var(--rule); flex: none; }
+.ed-zoom { display: flex; align-items: center; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; flex: none; }
+.ed-zoom button { border: 0; background: none; height: 32px; min-width: 32px; display: grid; place-items: center; color: var(--ink2); cursor: pointer; font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; }
+.ed-zoom button:hover:not(:disabled) { background: var(--sel); color: var(--ink); }
+.ed-zoom button:disabled { opacity: 0.35; cursor: default; }
+.ed-zoom .pct { min-width: 52px; border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); font-weight: 700; color: var(--ink); }
+.ed-body { flex: 1; min-height: 0; display: flex; }
+.ed-rail { width: 236px; flex: none; display: flex; flex-direction: column; gap: 1px; padding: 10px 8px; background: var(--side); border-right: 1px solid var(--rule); overflow: hidden; }
+.ed-rail-h { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 8px 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); }
+.ed-rail-h .faint { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.ed-sec { position: relative; display: flex; align-items: center; border-radius: 7px; min-height: 31px; }
+.ed-sec:hover { background: #ece8e0aa; }
+.ed-sec.on { background: var(--sel); }
+.ed-sec-name { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; border: 0; background: none; padding: 6px 4px 6px 10px; font: inherit; font-size: 13.5px; color: var(--ink); text-align: left; cursor: pointer; }
+.ed-sec.on .ed-sec-name { font-weight: 700; }
+.ed-sec-name .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-sec-name .tag { flex: none; font-size: 11.5px; color: var(--ink3); font-weight: 400; }
+.ed-sec.off .ed-sec-name { color: var(--ink3); }
+.ed-sec.off .nm { text-decoration: line-through; text-decoration-color: var(--rule); }
+.ed-sec-tools { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); display: flex; gap: 1px; opacity: 0; pointer-events: none; background: inherit; border-radius: 6px; }
+.ed-sec:hover .ed-sec-tools, .ed-sec:focus-within .ed-sec-tools { opacity: 1; pointer-events: auto; }
+.ed-sec:hover .tag, .ed-sec:focus-within .tag { visibility: hidden; }
+.ed-sec-tools button, .ed-eye { width: 24px; height: 24px; border: 0; border-radius: 5px; background: none; color: var(--ink3); display: grid; place-items: center; cursor: pointer; }
+.ed-sec-tools button:hover, .ed-eye:hover { background: var(--page); color: var(--ink); }
+.ed-eye { margin-right: 4px; flex: none; }
+.ed-sec.off .ed-eye { color: var(--attn); }
+.ed-insp { width: 268px; flex: none; display: flex; flex-direction: column; border-left: 1px solid var(--rule); background: var(--page); }
+.ed-insp-h { padding: 14px 18px; border-bottom: 1px solid var(--rule); font-weight: 800; font-size: 15px; }
+.ed-insp-b { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+.swatch { width: 26px; height: 26px; border-radius: 13px; border: 0; cursor: pointer; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.1); }
+.swatch.on { box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--ink); }
+.linkish { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; color: inherit; }
+.paged { flex: 1; min-width: 0; overflow: auto; position: relative; }
+.ed-desk { background: #e7e3da; padding: 28px 28px 48px; box-shadow: inset 0 2px 4px -2px rgb(29 36 34 / 0.12); }
+.a4-pages { display: flex; flex-direction: column; align-items: center; gap: 28px; width: fit-content; margin: 0 auto; }
+.a4-page { width: 640px; height: 905px; flex: none; position: relative; background: #fff; border-radius: 2px; box-shadow: 0 1px 2px rgb(29 36 34 / 0.10), 0 10px 28px -10px rgb(29 36 34 / 0.28); }
+
+/* Menus and toolbar-size controls */
+.menu { position: fixed; z-index: 60; min-width: 260px; padding: 4px; background: var(--page); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.menu-item { display: flex; align-items: center; gap: 10px; border: 0; background: none; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; color: var(--ink); cursor: pointer; }
+.menu-item:hover, .menu-item:focus { background: var(--sel); outline: none; }
+.dd-btn.compact { padding: 5px 10px; min-height: 34px; font-size: 14px; }
+.seg.compact button { padding: 5px 10px; }
+
+/* Slim scrollbars in the app's colours */
+* { scrollbar-width: thin; scrollbar-color: #cdc6b8 transparent; }
 .a4-body { position: absolute; overflow: hidden; }
 .a4-head { position: absolute; top: 22px; left: 52px; right: 52px; font: 9px var(--ui); color: #707071; border-bottom: 1px solid #e3e3e3; padding-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .a4-foot { position: absolute; bottom: 20px; right: 52px; font: 9px var(--ui); color: #707071; }
@@ -209,13 +252,22 @@ mark.q { background: rgb(201 138 30 / 0.22); box-shadow: inset 0 -2.5px 0 var(--
 .rep .sel-block { outline: 1.5px solid var(--ink); outline-offset: 6px; border-radius: 2px; }
 .rep blockquote { margin: 8px 0 8px 14px; font-style: italic; }
 
+@media (max-height: 760px) {
+  .nav { padding-top: 10px; }
+  .nav-item { padding: 5px 10px; }
+  .nav-group { padding: 8px 10px 3px; }
+  .brand { padding-bottom: 8px; }
+}
+
 @media (max-width: 900px) {
   .shell { grid-template-columns: 1fr; }
   .nav { display: none; }
   .work { flex-direction: column; padding: 16px; }
-  .work.fill { flex: none; }
-  .work.fill > .side-col { width: 100% !important; }
-  .paged { align-items: flex-start; max-height: 80vh; }
+  .editor { margin: 12px 16px; }
+  .ed-bar { flex-wrap: wrap; }
+  .ed-body { flex-direction: column; }
+  .ed-rail, .ed-insp { width: auto; border: 0; }
+  .ed-desk { min-height: 70vh; }
 }
 
 /* Printing the report: only the A4 page, no app chrome. */
@@ -227,7 +279,7 @@ mark.q { background: rgb(201 138 30 / 0.22); box-shadow: inset 0 -2.5px 0 var(--
   body.print-report .report-print { position: absolute; left: 0; top: 0; zoom: 1.255; min-height: 0; box-shadow: none; padding: 0; }
   body.print-report .a4-page { display: none; }
   body.print-report .rep-flow { opacity: 1; z-index: auto; }
-  body.print-report .paged, body.print-report .work.fill { overflow: visible; display: block; position: static; }
+  body.print-report .paged, body.print-report .editor, body.print-report .ed-body { overflow: visible; display: block; position: static; border: 0; margin: 0; box-shadow: none; }
   body.print-report, body.print-report .shell, body.print-report .main { background: #fff; }
   body.print-report .sel-block { outline: none; }
   body.print-report .main { overflow: visible; }

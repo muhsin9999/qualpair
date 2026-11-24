@@ -1,9 +1,12 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, ChevronDown } from 'lucide-react';
 
 export interface Option<T extends string | number> {
   value: T;
   label: string;
+  /** Optional style for the option's text (e.g. a font list shown in each font). */
+  style?: CSSProperties;
 }
 
 interface Props<T extends string | number> {
@@ -14,12 +17,14 @@ interface Props<T extends string | number> {
   style?: CSSProperties;
   /** Show the closed button's text in bold (used for the report template). */
   strong?: boolean;
+  /** Smaller button for toolbars. */
+  compact?: boolean;
 }
 
 /** A dropdown in the app's style. Keyboard: arrows, Home/End, Enter or Space to pick, Escape to close, letters to jump. */
-export function Select<T extends string | number>({ value, options, onChange, label, style, strong }: Props<T>) {
+export function Select<T extends string | number>({ value, options, onChange, label, style, strong, compact }: Props<T>) {
   const [open, setOpen] = useState(false);
-  const [up, setUp] = useState(false);
+  const [place, setPlace] = useState<CSSProperties>({});
   const [active, setActive] = useState(0);
   const box = useRef<HTMLDivElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
@@ -29,9 +34,17 @@ export function Select<T extends string | number>({ value, options, onChange, la
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const close = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node) && !list.current?.contains(e.target as Node)) setOpen(false); };
+    // The list floats above the page (fixed position), so close it when anything behind it scrolls or resizes.
+    const away = (e: Event) => { if (!list.current?.contains(e.target as Node)) setOpen(false); };
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    window.addEventListener('scroll', away, true);
+    window.addEventListener('resize', away);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      window.removeEventListener('scroll', away, true);
+      window.removeEventListener('resize', away);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -40,7 +53,12 @@ export function Select<T extends string | number>({ value, options, onChange, la
 
   function show() {
     const r = btn.current?.getBoundingClientRect();
-    setUp(!!r && window.innerHeight - r.bottom < Math.min(280, options.length * 38 + 16) && r.top > window.innerHeight - r.bottom);
+    if (r) {
+      const need = Math.min(280, options.length * 36 + 10);
+      const below = window.innerHeight - r.bottom - 8;
+      const up = below < need && r.top > below;
+      setPlace({ left: r.left, minWidth: r.width, maxHeight: Math.min(280, (up ? r.top : below) - 8), ...(up ? { bottom: window.innerHeight - r.top + 6 } : { top: r.bottom + 6 }) });
+    }
     setActive(Math.max(0, options.findIndex((o) => o.value === value)));
     setOpen(true);
   }
@@ -74,22 +92,23 @@ export function Select<T extends string | number>({ value, options, onChange, la
 
   return (
     <div ref={box} className="dd" style={style}>
-      <button ref={btn} type="button" className="dd-btn" aria-haspopup="listbox" aria-expanded={open} aria-controls={id} aria-label={`${label}: ${current?.label ?? ''}`}
+      <button ref={btn} type="button" className={compact ? 'dd-btn compact' : 'dd-btn'} aria-haspopup="listbox" aria-expanded={open} aria-controls={id} aria-label={`${label}: ${current?.label ?? ''}`}
         aria-activedescendant={open ? `${id}-${active}` : undefined} onClick={() => (open ? setOpen(false) : show())} onKeyDown={onKey} style={strong ? { fontWeight: 700 } : undefined}>
-        <span className="dd-val">{current?.label ?? ''}</span>
+        <span className="dd-val" style={current?.style}>{current?.label ?? ''}</span>
         <ChevronDown size={16} className={open ? 'dd-chev open' : 'dd-chev'} />
       </button>
-      {open && (
-        <ul ref={list} id={id} role="listbox" aria-label={label} className={up ? 'dd-list up' : 'dd-list'}>
+      {open && createPortal(
+        <ul ref={list} id={id} role="listbox" aria-label={label} className="dd-list" style={place}>
           {options.map((o, i) => (
             <li key={String(o.value)} id={`${id}-${i}`} data-i={i} role="option" aria-selected={o.value === value}
               className={`dd-opt${i === active ? ' active' : ''}${o.value === value ? ' sel' : ''}`}
               onMouseEnter={() => setActive(i)} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(i)}>
-              <span className="dd-val">{o.label}</span>
+              <span className="dd-val" style={o.style}>{o.label}</span>
               {o.value === value && <Check size={15} />}
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body,
       )}
     </div>
   );

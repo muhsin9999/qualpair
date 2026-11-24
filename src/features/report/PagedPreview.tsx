@@ -73,12 +73,29 @@ interface Props {
   /** Typography for the report body (font, size, line spacing as CSS variables). */
   repStyle?: CSSProperties;
   className?: string;
+  /** Page scale: a number (1 = 100%), 'fit' to fit the page width, or 'page' to show a whole page. */
+  zoom?: number | 'fit' | 'page';
+  /** Reports the scale in use, so the toolbar can show it. */
+  onScale?: (s: number) => void;
 }
 
-export function PagedPreview({ children, header, jump, style, repStyle, className = '' }: Props) {
+export function PagedPreview({ children, header, jump, style, repStyle, className = '', zoom = 'fit', onScale }: Props) {
   const flowRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [breaks, setBreaks] = useState<number[]>([0, BODY_H]);
+  const [desk, setDesk] = useState({ w: 0, h: 0 });
+  const fitW = Math.max(0.4, Math.min(1, (desk.w - 56) / PAGE_W)) || 1;
+  const scale = zoom === 'fit' ? fitW : zoom === 'page' ? Math.max(0.3, Math.min(fitW, (desk.h - 76) / PAGE_H)) || 1 : zoom;
+  useEffect(() => onScale?.(scale), [scale, onScale]);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const read = () => setDesk({ w: el.clientWidth, h: el.clientHeight });
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    read();
+    return () => ro.disconnect();
+  }, []);
 
   const measure = useCallback(() => {
     const el = flowRef.current;
@@ -108,13 +125,15 @@ export function PagedPreview({ children, header, jump, style, repStyle, classNam
     while (k + 1 < breaks.length - 1 && breaks[k + 1]! <= y + 1) k++;
     const page = box.querySelectorAll<HTMLElement>('.a4-page')[k];
     if (!page) return;
-    box.scrollTo({ top: page.offsetTop + PAD_T + (y - breaks[k]!) - 28, behavior: 'smooth' });
+    const top = page.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+    box.scrollTo({ top: top + (PAD_T + y - breaks[k]!) * scale - 24, behavior: 'smooth' });
   }, [jump?.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pages = breaks.slice(0, -1).map((b, i) => [b, breaks[i + 1]! - b] as const);
   return (
     <div ref={scrollRef} className={`paged ${className}`} style={style}>
       <div ref={flowRef} className="rep rep-flow report-print" style={{ ...repStyle, width: BODY_W }}>{children}</div>
+      <div className="a4-pages" style={{ zoom: scale }}>
       {pages.map(([offset, h], i) => (
         <div key={i} className="a4-page" aria-hidden="true">
           <div className="a4-head">{header}</div>
@@ -124,6 +143,7 @@ export function PagedPreview({ children, header, jump, style, repStyle, classNam
           <div className="a4-foot">{i + 1} of {pages.length}</div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState, type CSSProperties } from 'react';
-import { ArrowDown, ArrowUp, Download, Eye, EyeOff, FileText, Printer } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, Eye, EyeOff, FileText, Minus, Plus, Printer } from 'lucide-react';
 import { usePid } from '../../app/hooks';
 import { PageHead, Segmented } from '../../app/ui';
 import { db } from '../../db/db';
@@ -11,6 +11,7 @@ import {
 import { downloadBlob, downloadText, qdcXml, toCsv } from '../../services/export';
 import { PagedPreview } from './PagedPreview';
 import { Select } from '../../app/Select';
+import { Menu } from '../../app/Menu';
 import { ACCENTS, agreementSvg, matrixSvg, prevalenceSvg, svgToPng } from './figures';
 import { buildDocx } from './docx';
 import { coreqRows } from './coreq';
@@ -140,6 +141,8 @@ export default function ReportPage() {
   const [busy, setBusy] = useState('');
   const [accentIdx, setAccentIdx] = useState(0);
   const [jump, setJump] = useState<{ id: string; n: number }>();
+  const [zoom, setZoom] = useState<number | 'fit' | 'page'>('fit');
+  const [scale, setScale] = useState(1);
   const pick = (id: SectionId) => {
     setSel(id);
     setJump((j) => ({ id, n: (j?.n ?? 0) + 1 }));
@@ -192,91 +195,103 @@ export default function ReportPage() {
     downloadText(`${d!.project.name} backup.json`, JSON.stringify({ app: 'QualCheck', version: 1, exportedAt: new Date().toISOString(), data: dump }), 'application/json');
   }
 
+  const printPdf = () => { document.body.classList.add('print-report'); window.print(); document.body.classList.remove('print-report'); };
+  const shown = order.length - settings.hiddenSections.filter((h) => order.includes(h as SectionId)).length;
+  const selHidden = settings.hiddenSections.includes(sel);
+  const toggle = (id: SectionId) => save({ hiddenSections: settings.hiddenSections.includes(id) ? settings.hiddenSections.filter((x) => x !== id) : [...settings.hiddenSections, id] });
+
   return (
     <>
       <PageHead title="Report" sub={`Draft · ${d.undecided ? `${d.undecided} disagreements still undecided` : 'all disagreements decided'}`}>
+        <Menu label="More" icon={<Download size={16} />} items={[
+          { label: 'Coded paragraphs', hint: 'CSV, one row per paragraph', onSelect: () => void csvSegments() },
+          { label: 'Codebook for NVivo / ATLAS.ti', hint: 'QDC file', onSelect: async () => { const b = await currentCodebook(pid); if (b) downloadText(`${d.project.name} codebook.qdc`, qdcXml(d.project.name, b.codes), 'application/xml'); } },
+          { label: 'Study backup', hint: 'JSON, everything in this study', onSelect: () => void backup() },
+        ]} />
         <button className="btn" onClick={word} disabled={!!busy}><FileText size={16} /> Word</button>
-        <button className="btn primary" onClick={() => { document.body.classList.add('print-report'); window.print(); document.body.classList.remove('print-report'); }}><Printer size={16} /> Export PDF</button>
+        <button className="btn primary" onClick={printPdf}><Printer size={16} /> Export PDF</button>
       </PageHead>
       {busy && <div className="notice neutral" style={{ margin: '12px 32px 0' }}>{busy}</div>}
-      <div className="work fill" style={{ paddingTop: 16 }}>
-        <div className="stack side-col" style={{ width: 240, flex: 'none', gap: 2 }}>
-          <div className="field" style={{ marginBottom: 10 }}>
-            <span className="small faint" style={{ fontWeight: 400 }}>Template</span>
-            <Select label="Template" strong value={settings.template} onChange={(v) => save({ template: v })}
-              options={[{ value: 'apa', label: 'Academic (APA 7)' }, { value: 'evaluation', label: 'Evaluation report' }]} />
+      <div className="editor">
+        <div className="ed-bar" role="toolbar" aria-label="Report format">
+          <Select compact strong label="Template" style={{ width: 190 }} value={settings.template} onChange={(v) => save({ template: v })}
+            options={[{ value: 'apa', label: 'Academic (APA 7)' }, { value: 'evaluation', label: 'Evaluation report' }]} />
+          <span className="ed-sep" />
+          <Select compact label="Font" style={{ width: 172 }} value={style.font} onChange={(v) => save({ font: v })}
+            options={FONTS.map((f) => ({ value: f, label: f, style: { fontFamily: FONT_STACK[f], fontSize: 15 } }))} />
+          <Segmented compact label="Text size" value={style.fontSize} onChange={(v) => save({ fontSize: v })} options={[[11, '11 pt'], [12, '12 pt']]} />
+          <Segmented compact label="Line spacing" value={style.lineSpacing} onChange={(v) => save({ lineSpacing: v })} options={[[1, 'Single'], [1.5, '1.5'], [2, 'Double']]} />
+          <span className="spacer" />
+          <Segmented compact label="Fit" value={typeof zoom === 'number' ? '' : zoom} onChange={(v) => v && setZoom(v)} options={[['fit', 'Fit width'], ['page', 'Whole page']]} />
+          <div className="ed-zoom" role="group" aria-label="Zoom">
+            <button type="button" aria-label="Zoom out" disabled={scale <= 0.5} onClick={() => setZoom(Math.max(0.5, Math.round((scale - 0.1) * 10) / 10))}><Minus size={15} /></button>
+            <button type="button" className="pct" title="Fit page width" aria-label={`Zoom ${Math.round(scale * 100)}%, fit page width`} onClick={() => setZoom('fit')}>{Math.round(scale * 100)}%</button>
+            <button type="button" aria-label="Zoom in" disabled={scale >= 1.5} onClick={() => setZoom(Math.min(1.5, Math.round((scale + 0.1) * 10) / 10))}><Plus size={15} /></button>
           </div>
-          <span className="label">Text</span>
-          <div className="stack" style={{ gap: 6, marginBottom: 14 }}>
-            <Select label="Font" value={style.font} onChange={(v) => save({ font: v })} options={FONTS.map((f) => ({ value: f, label: f }))} />
-            <Segmented label="Text size" value={style.fontSize} onChange={(v) => save({ fontSize: v })} options={[[11, '11 pt'], [12, '12 pt']]} />
-            <Segmented label="Line spacing" value={style.lineSpacing} onChange={(v) => save({ lineSpacing: v })} options={[[1, 'Single'], [1.5, '1.5'], [2, 'Double']]} />
-          </div>
-          <span className="label">Sections</span>
-          {order.map((id) => {
-            const hidden = settings.hiddenSections.includes(id);
-            const label = SECTIONS.find((s) => s.id === id)!.label;
-            return (
-              <div key={id} className="row" style={{ padding: '5px 6px', borderRadius: 7, border: sel === id ? '1.5px solid var(--ink)' : '1.5px solid transparent', background: sel === id ? 'var(--page)' : undefined, gap: 4 }}>
-                <button className="btn ghost small" style={{ padding: 2 }} onClick={() => move(id, -1)} aria-label="Move up"><ArrowUp size={12} /></button>
-                <button className="btn ghost small" style={{ padding: 2 }} onClick={() => move(id, 1)} aria-label="Move down"><ArrowDown size={12} /></button>
-                <button onClick={() => pick(id)} style={{ flex: 1, textAlign: 'left', border: 0, background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: sel === id ? 700 : 400, color: hidden ? 'var(--ink3)' : 'var(--ink)' }}>{label}</button>
-                <button className="btn ghost small" style={{ padding: 2 }} aria-label={hidden ? 'Show section' : 'Hide section'} onClick={() => save({ hiddenSections: hidden ? settings.hiddenSections.filter((x) => x !== id) : [...settings.hiddenSections, id] })}>
-                  {hidden ? <EyeOff size={14} color="var(--rule)" /> : <Eye size={14} color="var(--ink3)" />}
-                </button>
-              </div>
-            );
-          })}
-          <div style={{ height: 12 }} />
-          <span className="label">More exports</span>
-          <button className="btn small" onClick={csvSegments}><Download size={14} /> Coded paragraphs (.csv)</button>
-          <button className="btn small" onClick={async () => { const b = await currentCodebook(pid); if (b) downloadText(`${d.project.name} codebook.qdc`, qdcXml(d.project.name, b.codes), 'application/xml'); }}><Download size={14} /> Codebook for NVivo / ATLAS.ti (.qdc)</button>
-          <button className="btn small" onClick={backup}><Download size={14} /> Study backup (.json)</button>
         </div>
+        <div className="ed-body">
+          <nav className="ed-rail" aria-label="Report sections">
+            <div className="ed-rail-h"><span>Sections</span><span className="faint">{shown} of {order.length} shown</span></div>
+            {order.map((id) => {
+              const hidden = settings.hiddenSections.includes(id);
+              const label = SECTIONS.find((s) => s.id === id)!.label;
+              const [tag, name] = label.includes(' · ') ? label.split(' · ') as [string, string] : ['', label];
+              return (
+                <div key={id} className={`ed-sec${sel === id ? ' on' : ''}${hidden ? ' off' : ''}`}>
+                  <button type="button" className="ed-sec-name" onClick={() => pick(id)} title={label} aria-current={sel === id ? 'true' : undefined}>
+                    <span className="nm">{name}</span>{tag && <span className="tag">{tag}</span>}
+                  </button>
+                  <span className="ed-sec-tools">
+                    <button type="button" onClick={() => move(id, -1)} aria-label={`Move ${name} up`}><ArrowUp size={13} /></button>
+                    <button type="button" onClick={() => move(id, 1)} aria-label={`Move ${name} down`}><ArrowDown size={13} /></button>
+                  </span>
+                  <button type="button" className="ed-eye" aria-label={hidden ? `Show ${name}` : `Hide ${name}`} aria-pressed={!hidden} onClick={() => toggle(id)}>
+                    {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              );
+            })}
+          </nav>
 
-        <PagedPreview header={d.settings.title} jump={jump} repStyle={repStyle}>
-          {d.practice && <div className="notice" style={{ fontFamily: 'var(--ui)', fontSize: 10, marginBottom: 8 }}>Draft made with practice readers (keyword rules, no AI). Not for reporting.</div>}
-          {visible.map((id) => (
-            <div key={id} data-sec={id} className={sel === id ? 'sel-block' : ''} onClick={() => setSel(id)} style={{ marginBottom: 14, cursor: 'pointer' }}>
-              <Section id={id} d={d} accent={accent} />
-            </div>
-          ))}
-        </PagedPreview>
+          <PagedPreview className="ed-desk" header={d.settings.title} jump={jump} repStyle={repStyle} zoom={zoom} onScale={setScale}>
+            {d.practice && <div className="notice" style={{ fontFamily: 'var(--ui)', fontSize: 10, marginBottom: 8 }}>Draft made with practice readers (keyword rules, no AI). Not for reporting.</div>}
+            {visible.map((id) => (
+              <div key={id} data-sec={id} className={sel === id ? 'sel-block' : ''} onClick={() => setSel(id)} style={{ marginBottom: 14, cursor: 'pointer' }}>
+                <Section id={id} d={d} accent={accent} />
+              </div>
+            ))}
+          </PagedPreview>
 
-        <div className="card stack side-col" style={{ width: 280, flex: 'none', padding: 0, gap: 0, alignSelf: 'flex-start', maxHeight: '100%' }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--rule)', fontWeight: 800 }}>{SECTIONS.find((s) => s.id === sel)?.label}</div>
-          {sel === 'cover' && (
-            <div className="stack" style={{ padding: 16 }}>
-              {(['title', 'subtitle', 'author', 'institution'] as const).map((k) => (
+          <aside className="ed-insp" aria-label="Section settings">
+            <div className="ed-insp-h">{SECTIONS.find((s) => s.id === sel)?.label}</div>
+            <div className="ed-insp-b">
+              {selHidden && <div className="notice small">Hidden from the report. <button type="button" className="linkish" onClick={() => toggle(sel)}>Show it</button></div>}
+              {sel === 'cover' && (['title', 'subtitle', 'author', 'institution'] as const).map((k) => (
                 <label key={k} className="field"><span style={{ textTransform: 'capitalize' }}>{k}</span>
                   <input className="input" defaultValue={settings[k]} onBlur={(e) => save({ [k]: e.target.value })} /></label>
               ))}
-            </div>
-          )}
-          {FIGS.includes(sel) && (
-            <div className="stack" style={{ padding: 16, gap: 14 }}>
               {sel === 'fig-prevalence' && (
                 <>
                   <div className="field"><span>Highlight</span>
                     <Select label="Highlight" value={settings.highlightCodeId ?? ''} onChange={(v) => save({ highlightCodeId: v || undefined })}
                       options={[{ value: '', label: 'Largest theme' }, ...d.themes.map((t) => ({ value: t.code.id, label: t.code.name }))]} /></div>
-                  <div className="row"><span className="small muted spacer">Highlight colour</span>
-                    {ACCENTS.map((c, i) => <button key={c} aria-label={`Colour ${i + 1}`} onClick={() => setAccentIdx(i)} style={{ width: 20, height: 20, borderRadius: 10, background: c, border: accentIdx === i ? '2px solid var(--ink)' : 'none', outline: accentIdx === i ? '2px solid #fff' : 'none', outlineOffset: -4, cursor: 'pointer' }} />)}
-                  </div>
-                  <span className="tiny faint">Bars are grey with one highlight, sorted largest first. Held-back codes are left out.</span>
+                  <div className="field"><span>Highlight colour</span>
+                    <div className="row" style={{ gap: 8 }}>
+                      {ACCENTS.map((c, i) => <button key={c} type="button" className={`swatch${accentIdx === i ? ' on' : ''}`} aria-label={`Colour ${i + 1}`} aria-pressed={accentIdx === i} onClick={() => setAccentIdx(i)} style={{ background: c }} />)}
+                    </div></div>
                 </>
               )}
-              <span className="small" style={{ fontWeight: 700 }}>Download this figure</span>
-              <div className="row" style={{ gap: 6 }}>
-                <button className="btn small grow" onClick={async () => { const png = await svgToPng(figSvg(sel), 3); downloadBlob(`${sel}.png`, new Blob([png.bytes as BlobPart], { type: 'image/png' })); }}>PNG</button>
-                <button className="btn small grow" onClick={() => downloadText(`${sel}.svg`, figSvg(sel), 'image/svg+xml')}>SVG</button>
-                <button className="btn small grow" onClick={() => downloadText(`${sel}.csv`, figCsv(sel), 'text/csv')}>Data</button>
-              </div>
+              {FIGS.includes(sel) && (
+                <div className="field"><span>Download this figure</span>
+                  <div className="row" style={{ gap: 6 }}>
+                    <button className="btn small grow" onClick={async () => { const png = await svgToPng(figSvg(sel), 3); downloadBlob(`${sel}.png`, new Blob([png.bytes as BlobPart], { type: 'image/png' })); }}>PNG</button>
+                    <button className="btn small grow" onClick={() => downloadText(`${sel}.svg`, figSvg(sel), 'image/svg+xml')}>SVG</button>
+                    <button className="btn small grow" onClick={() => downloadText(`${sel}.csv`, figCsv(sel), 'text/csv')}>Data</button>
+                  </div></div>
+              )}
+              {!FIGS.includes(sel) && sel !== 'cover' && <p className="small muted" style={{ margin: 0 }}>Written from your study’s data. Change the wording in the Word file.</p>}
             </div>
-          )}
-          {!FIGS.includes(sel) && sel !== 'cover' && (
-            <div className="small muted" style={{ padding: 16 }}>This section is written from your study’s data. Hide it with the eye, or move it with the arrows. Edit the Word file for final wording.</div>
-          )}
+          </aside>
         </div>
       </div>
     </>

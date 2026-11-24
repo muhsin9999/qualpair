@@ -56,9 +56,9 @@ export function Empty({ children, action }: { children: ReactNode; action?: Reac
 }
 
 /** A row of mutually exclusive buttons (radio group). */
-export function Segmented<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
+export function Segmented<T extends string | number>({ label, value, options, onChange, compact }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void; compact?: boolean }) {
   return (
-    <div className="seg" role="radiogroup" aria-label={label}>
+    <div className={compact ? 'seg compact' : 'seg'} role="radiogroup" aria-label={label}>
       {options.map(([v, l]) => (
         <button key={String(v)} type="button" role="radio" aria-checked={v === value} className={v === value ? 'on' : ''} onClick={() => onChange(v)}>{l}</button>
       ))}
