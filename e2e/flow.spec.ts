@@ -13,7 +13,7 @@ test('sample study: import → sample → both readers → access copies → agr
   await page.goto('/studies?practice');
   await page.getByRole('button', { name: /Try the sample study/ }).click();
   await expect(page.getByRole('heading', { name: 'UK healthcare study (sample)' })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText('Practice readers on (no AI)')).toBeVisible();
+  await expect(page.getByText('Practice readers · no AI')).toBeVisible();
   await shot(page, '01-overview-empty');
 
   await page.getByRole('link', { name: 'Interviews' }).click();

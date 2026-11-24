@@ -24,24 +24,22 @@ export function Nav() {
   const projects = useLiveQuery(() => db.projects.orderBy('updatedAt').reverse().toArray(), []);
   const s = useLiveQuery(() => studyStats(pid), [pid]);
 
-  const item = (to: string, label: string, Icon: typeof Files, right?: string, rightClass = '', iconColor?: string) => (
+  const item = (to: string, label: string, Icon: typeof Files, right?: string, rightClass = '') => (
     <NavLink to={to} end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-      <Icon size={16} color={iconColor ?? 'var(--ink2)'} />
+      <Icon size={16} />
       <span>{label}</span>
       {right ? <span className={`r ${rightClass}`}>{right}</span> : null}
     </NavLink>
   );
   const base = `/p/${pid}`;
-  const initials = (project?.name ?? '?').split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
 
   return (
     <nav className="nav" aria-label="Study">
       <Link to="/studies" className="brand">
-        <Logo size={22} fontSize={15} />
+        <Logo size={26} fontSize={18} />
       </Link>
       <div style={{ position: 'relative' }}>
         <button className="switcher" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-          <span className="ini">{initials}</span>
           <span style={{ minWidth: 0, flex: 1 }}>
             <div className="nm">{project?.name ?? '…'}</div>
             <div className="mt">{s ? `${s.interviews} interviews` : ''}</div>
@@ -59,22 +57,22 @@ export function Nav() {
           </div>
         )}
       </div>
-      {practiceMode() && <div className="practice-flag" title="Readers use keyword rules, not AI">Practice readers on (no AI)</div>}
-      <div style={{ height: 8 }} />
+      {practiceMode() && <div className="practice-flag" title="Readers use keyword rules, not AI">Practice readers · no AI</div>}
       {item(base, 'Overview', LayoutDashboard)}
       <div className="nav-group">PREPARE</div>
       {item(`${base}/interviews`, 'Interviews', Files, s ? String(s.interviews) : '')}
       {item(`${base}/codebook`, 'Codebook', BookOpen, s ? String(s.codes) : '')}
       <div className="nav-group">CODING</div>
-      {item(`${base}/sample`, 'Your sample', UserRound, s && s.sampleSize && s.sampleDone < s.sampleSize ? `${s.sampleDone}/${s.sampleSize}` : '', '', 'var(--ink)')}
-      {item(`${base}/laptop`, 'Laptop reader', Laptop, s ? pct(s.laptopDone, s.codable) : '', '', 'var(--laptop)')}
+      {item(`${base}/sample`, 'Your sample', UserRound, s && s.sampleSize && s.sampleDone < s.sampleSize ? `${s.sampleDone}/${s.sampleSize}` : '')}
+      {item(`${base}/laptop`, 'Laptop reader', Laptop, s ? pct(s.laptopDone, s.codable) : '')}
       {item(`${base}/access`, 'Access copies', EyeOff, s && s.interviews && s.approved < s.interviews ? `${s.approved}/${s.interviews}` : '')}
-      {item(`${base}/cloud`, 'Cloud reader', Cloud, s ? pct(s.cloudDone, s.codable) : '', '', 'var(--cloud)')}
+      {item(`${base}/cloud`, 'Cloud reader', Cloud, s ? pct(s.cloudDone, s.codable) : '')}
       <div className="nav-group">RESULTS</div>
       {item(`${base}/agreement`, 'Agreement', Scale)}
       {item(`${base}/review`, 'Disagreements', GitCompareArrows, s && s.open ? String(s.open) : '', 'attn')}
       {item(`${base}/report`, 'Report', FileChartColumn)}
       <div className="push" />
+      <div className="nav-foot" />
       {item(`${base}/activity`, 'AI activity', Activity, s ? String(s.ledger) : '')}
     </nav>
   );
