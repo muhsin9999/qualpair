@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Cloud, EyeOff, Laptop, UserRound } from 'lucide-react';
 import { usePid, useProject, useTranscripts } from '../../app/hooks';
 import { studyStats } from '../../app/stats';
-import { PageHead } from '../../app/ui';
+import { PageHead, Track } from '../../app/ui';
 import { agreementByCode } from '../../services/results';
 import { kappaBand } from '../../domain/stats/agreement';
 import { SAMPLE_SOURCE } from '../../services/sample';
@@ -30,12 +30,12 @@ export default function OverviewPage() {
   else if (!s.codes) next = { text: 'Next: write or draft your codebook', to: 'codebook', cta: 'Open codebook' };
   else if (!s.sampleSize || s.sampleDone < s.sampleSize) next = { text: `Next: code your sample yourself (${s.sampleDone} of ${s.sampleSize || '…'} paragraphs done)`, to: 'sample', cta: 'Code your sample' };
   else if (s.laptopDone < s.codable) next = { text: `Next: let the laptop reader code ${s.codable - s.laptopDone} paragraphs`, to: 'laptop', cta: 'Open laptop reader' };
-  else if (s.approved < s.interviews) next = { text: `Next: approve ${s.interviews - s.approved} access copies`, to: 'access', cta: 'Review access copies' };
+  else if (s.approved < s.interviews) next = { text: `Next: approve ${s.interviews - s.approved} access cop${s.interviews - s.approved === 1 ? 'y' : 'ies'}`, to: 'access', cta: 'Review access copies' };
   else if (s.cloudDone < s.codable) next = { text: 'Next: send the approved access copies to the cloud reader', to: 'cloud', cta: 'Open cloud reader' };
   else if (s.open) next = { text: `Next: decide ${s.open} places where the readers disagree`, to: 'review', cta: 'Start reviewing' };
   else next = { text: 'All disagreements decided. Build your report.', to: 'report', cta: 'Open report' };
 
-  const readerCard = (kind: 'laptop' | 'cloud', done: number) => (
+  const readerCard = (kind: 'laptop' | 'cloud', done: number, k: number | null) => (
     <div className="card lift pad stack grow" style={{ gap: 12 }}>
       <div className="row">
         <span style={{ width: 36, height: 36, borderRadius: 18, background: `var(--${kind}-tint)`, display: 'grid', placeItems: 'center' }}>
@@ -50,6 +50,11 @@ export default function OverviewPage() {
         <span className="big" style={{ color: `var(--${kind})` }}>{done.toLocaleString()}</span>
         <span className="muted">of {s.codable.toLocaleString()} paragraphs coded</span>
       </div>
+      <Track value={done} total={s.codable} kind={kind} />
+      <div className="row small" style={{ borderTop: '1px solid var(--rule)', paddingTop: 10, marginTop: 'auto' }}>
+        <span className="muted spacer">Agreement with you</span>
+        <strong style={{ color: `var(--${kind})` }}>{k === null ? '—' : `κ ${k.toFixed(2)} · ${kappaBand(k)}`}</strong>
+      </div>
     </div>
   );
 
@@ -57,25 +62,14 @@ export default function OverviewPage() {
     <>
       <PageHead title={project.name} sub={project.researchQuestion || undefined} />
       <div className="work col">
-        <div className="row" style={{ gap: 0, alignItems: 'stretch' }}>
-          {readerCard('laptop', s.laptopDone)}
-          <div className="stack" style={{ width: 300, padding: '0 18px', gap: 10 }}>
-            <div className="stack" style={{ background: 'var(--ink)', color: '#fff', borderRadius: 12, padding: 18, alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 18, background: '#ffffff1f', display: 'grid', placeItems: 'center' }}><UserRound size={18} /></span>
-              <strong style={{ fontSize: 16 }}>You</strong>
-              <span className="small" style={{ opacity: 0.7 }}>{s.sampleDone} paragraphs coded by hand</span>
-            </div>
-            <div className="row" style={{ gap: 10 }}>
-              {[['laptop', kl], ['cloud', kc]].map(([k, v]) => (
-                <div key={k as string} className="stack grow" style={{ background: `var(--${k}-tint)`, borderRadius: 10, padding: '10px 8px', alignItems: 'center', gap: 2, color: `var(--${k})` }}>
-                  <strong style={{ fontSize: 20 }}>{v === null ? '—' : `κ ${(v as number).toFixed(2)}`}</strong>
-                  <span className="tiny" style={{ fontWeight: 600 }}>{k === 'laptop' ? 'Laptop' : 'Cloud'}{v !== null ? ` · ${kappaBand(v as number)}` : ''}</span>
-                </div>
-              ))}
-            </div>
-            <div className="tiny faint" style={{ textAlign: 'center' }}>Median agreement with you, across codes</div>
+        <div className="row" style={{ gap: 18, alignItems: 'stretch' }}>
+          {readerCard('laptop', s.laptopDone, kl)}
+          <div className="stack" style={{ width: 240, flex: 'none', background: 'var(--ink)', color: '#fff', borderRadius: 12, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+            <span style={{ width: 40, height: 40, borderRadius: 20, background: '#ffffff1f', display: 'grid', placeItems: 'center' }}><UserRound size={20} /></span>
+            <strong style={{ fontSize: 17 }}>You</strong>
+            <span className="small" style={{ opacity: 0.75 }}>{s.sampleDone} paragraphs coded by hand. Both readers are scored against you.</span>
           </div>
-          {readerCard('cloud', s.cloudDone)}
+          {readerCard('cloud', s.cloudDone, kc)}
         </div>
 
         <div className="next-bar">

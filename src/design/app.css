@@ -114,6 +114,8 @@ a { color: inherit; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > span { font-size: 13px; font-weight: 700; color: var(--ink2); }
 .input, .textarea, .select { border: 1px solid var(--rule); border-radius: 8px; padding: 9px 12px; background: var(--page); width: 100%; }
+/* Text boxes grow with their text instead of scrolling inside. */
+.textarea { field-sizing: content; min-height: 4.2em; max-height: 45vh; resize: none; }
 .textarea { min-height: 72px; resize: vertical; line-height: 1.45; }
 .input:focus, .textarea:focus, .select:focus { outline: 2px solid var(--ink); outline-offset: -1px; }
 /* Segmented control */
@@ -360,4 +362,20 @@ mark.q { background: rgb(201 138 30 / 0.22); box-shadow: inset 0 -2.5px 0 var(--
 }
 @media (prefers-reduced-motion: reduce) {
   .ld-cloud, .ld-handle, .ld-chip, .ld-decide { transition: none; }
+}
+
+/* Work pages with a reading pane: the pane scrolls, the side panel stays put */
+.work.pane { flex: 1; min-height: 0; align-items: stretch; padding-bottom: 20px; }
+.work.pane > .paper { overflow: auto; }
+.work.pane > .side { overflow: auto; min-height: 0; }
+.work.pane > .side > * { flex-shrink: 0; }
+.work.pane > .side > .shrink { flex-shrink: 1; min-height: 0; overflow: hidden; }
+.work.pane > .side .pin-bottom { position: sticky; bottom: 0; z-index: 2; background: var(--canvas); padding-top: 6px; box-shadow: 0 -10px 12px -6px var(--canvas); }
+.pane-head { position: sticky; top: 0; z-index: 2; background: var(--page); padding: 20px 0 12px; border-bottom: 1px solid var(--rule); }
+.facts { display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; margin: 0; font-size: 14px; }
+.facts dt { color: var(--ink2); }
+.facts dd { margin: 0; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) {
+  .work.pane { flex: none; }
+  .work.pane > .paper, .work.pane > .side { overflow: visible; }
 }

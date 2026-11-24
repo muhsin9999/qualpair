@@ -65,3 +65,17 @@ export function Segmented<T extends string | number>({ label, value, options, on
     </div>
   );
 }
+
+/**
+ * Scrolls a paragraph into view inside its own pane (not the whole page): centred when it fits,
+ * otherwise its top just below the pane's top edge.
+ */
+export function revealIn(pane: HTMLElement | null, selector: string) {
+  const el = pane?.querySelector<HTMLElement>(selector);
+  if (!pane || !el) return;
+  const pr = pane.getBoundingClientRect();
+  const er = el.getBoundingClientRect();
+  const top = er.top - pr.top + pane.scrollTop;
+  const target = er.height > pr.height * 0.75 ? top - 16 : top - (pr.height - er.height) / 2;
+  pane.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+}

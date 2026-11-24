@@ -120,9 +120,9 @@ export default function AccessPage() {
         <button className="btn small" disabled={ti === 0} onClick={() => setTi(ti - 1)} aria-label="Previous interview"><ChevronLeft size={16} /></button>
         <button className="btn small" disabled={ti >= transcripts.length - 1} onClick={() => setTi(ti + 1)} aria-label="Next interview"><ChevronRight size={16} /></button>
       </PageHead>
-      <div className="work">
-        <div className="paper grow" style={{ padding: '22px 30px' }} onMouseUp={() => setSelection(window.getSelection()?.toString().trim() ?? '')}>
-          <div className="row" style={{ borderBottom: '1px solid var(--rule)', paddingBottom: 12, gap: 32 }}>
+      <div className="work pane">
+        <div className="paper grow" style={{ padding: '0 30px 22px' }} onMouseUp={() => setSelection(window.getSelection()?.toString().trim() ?? '')}>
+          <div className="row pane-head" style={{ gap: 32 }}>
             <span className="row grow small" style={{ fontWeight: 700, color: 'var(--ink2)' }}><Lock size={15} /> Original</span>
             <span className="row grow small cloud" style={{ fontWeight: 700 }}><Cloud size={15} /> What the cloud reader sees</span>
           </div>
@@ -138,7 +138,7 @@ export default function AccessPage() {
           <button className="btn ghost small" style={{ marginTop: 10 }} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Show only paragraphs with hidden words' : `Show all ${segs?.length ?? 0} paragraphs`}</button>
         </div>
 
-        <div className="stack" style={{ width: 360, flex: 'none', gap: 12 }}>
+        <div className="stack side" style={{ width: 360, flex: 'none', gap: 12 }}>
           <div className="card pad stack" style={{ gap: 10 }}>
             <div><strong>Always hide</strong><div className="tiny faint">Applies to every interview in this study</div></div>
             <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
@@ -184,12 +184,14 @@ export default function AccessPage() {
           </div>
 
           {err && <div className="notice">{err}</div>}
-          {approved ? (
-            <div className="notice neutral row"><Check size={16} /> Approved. The cloud reader may read this copy.</div>
-          ) : (
-            <button className="btn primary" disabled={pending.length > 0} onClick={approve}><Check size={16} /> Approve {t.title}</button>
-          )}
-          {pending.length > 0 && <span className="tiny faint">Decide the suggestions above before approving.</span>}
+          <div className="pin-bottom stack" style={{ gap: 6 }}>
+            {approved ? (
+              <div className="notice neutral row"><Check size={16} /> Approved. The cloud reader may read this copy.</div>
+            ) : (
+              <button className="btn primary" disabled={pending.length > 0} onClick={approve}><Check size={16} /> Approve {t.title}</button>
+            )}
+            {pending.length > 0 && <span className="tiny faint">Decide the suggestions above before approving.</span>}
+          </div>
         </div>
       </div>
     </>

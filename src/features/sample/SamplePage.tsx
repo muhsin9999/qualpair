@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Check, Lock } from 'lucide-react';
 import { db } from '../../db/db';
 import { codeColor, paraNo, usePid, useCodebook, useProject } from '../../app/hooks';
-import { PageHead, Track } from '../../app/ui';
+import { PageHead, revealIn, Track } from '../../app/ui';
 import { Select } from '../../app/Select';
 import { ensureSample, getSample, resetSample, saveSegmentCoding } from '../../services/coding';
 import type { Segment } from '../../types';
@@ -62,6 +62,7 @@ export default function SamplePage() {
   const firstUndone = useMemo(() => (segs && human ? Math.max(0, segs.findIndex((s) => !human.has(s.id))) : 0), [segs, human]);
   const idx = pos ?? firstUndone;
   const cur = segs?.[idx];
+  const paperRef = useRef<HTMLDivElement>(null);
   const context = useLiveQuery(async () => {
     if (!cur) return [];
     return db.segments.where('[transcriptId+index]').between([cur.transcriptId, cur.index - 2], [cur.transcriptId, cur.index + 2], true, true).toArray();
@@ -97,6 +98,10 @@ export default function SamplePage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [book, next, idx]);
 
+  // Keep the paragraph being coded in view inside the transcript pane.
+  useEffect(() => {
+    revealIn(paperRef.current, '.para.cur');
+  }, [cur?.id, context]);
   if (!project) return null;
   if (sampleRes === undefined) return null;
   if (!sample) return (<><PageHead title="Your sample" sub="Code these yourself. Both readers are scored against you." /><Setup pid={pid} /></>);
@@ -111,8 +116,8 @@ export default function SamplePage() {
       <PageHead title="Your sample" sub={`Code these yourself. Both readers are scored against you.${sample.madeByTeam ? ' (This sample was coded by the QualCheck team to show the workflow.)' : ''}`}>
         <button className="btn ghost small" onClick={() => { if (confirm('Draw a new sample? Your sample coding will be cleared.')) void resetSample(pid); }}>Redraw sample</button>
       </PageHead>
-      <div className="work">
-        <div className="paper grow doc" style={{ minHeight: 400 }}>
+      <div className="work pane">
+        <div ref={paperRef} className="paper grow doc">
           {cur ? (
             <>
               <h2>{titles?.get(cur.transcriptId)}</h2>
@@ -131,9 +136,10 @@ export default function SamplePage() {
             <div className="empty">No paragraphs in the sample.</div>
           )}
         </div>
-        <div className="stack" style={{ width: 330, flex: 'none', gap: 14 }}>
+        <div className="stack side" style={{ width: 330, flex: 'none', gap: 10 }}>
           <div className="stack" style={{ gap: 8 }}>
-            <div className="row" style={{ alignItems: 'baseline' }}><span className="big">{total - done}</span><span className="muted">of {total} left · drawn from all interviews</span></div>
+            <div className="row" style={{ alignItems: 'baseline' }}><span className="big">{total - done}</span><span className="muted spacer">of {total} left</span>
+              <span className="small faint row" style={{ gap: 5 }} title="Pass mark, fixed before the readers run"><Lock size={12} /> pass mark κ ≥ {project.kappaThreshold.toFixed(2)}</span></div>
             <Track value={done} total={total} />
           </div>
           {allDone && <div className="notice neutral row"><Check size={16} /> Sample done. The readers can now be scored against you.</div>}
@@ -144,7 +150,7 @@ export default function SamplePage() {
                 const on = picked.has(c.id);
                 return (
                   <button key={c.id} className="row" onClick={() => setPicked((p) => { const x = new Set(p); if (on) x.delete(c.id); else x.add(c.id); return x; })}
-                    style={{ width: '100%', border: 0, background: on ? 'var(--sel)' : 'none', borderRadius: 6, padding: '8px', cursor: 'pointer', textAlign: 'left' }}>
+                    style={{ width: '100%', border: 0, background: on ? 'var(--sel)' : 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', textAlign: 'left' }}>
                     <span style={{ width: 18, height: 18, borderRadius: 4, border: on ? 'none' : '1.5px solid var(--ink3)', background: on ? 'var(--ink)' : 'var(--page)', display: 'grid', placeItems: 'center', flex: 'none' }}>{on && <Check size={12} color="#fff" />}</span>
                     <span className="cbar" style={{ background: codeColor(c) }} />
                     <span className="spacer" style={{ fontWeight: on ? 700 : 400 }}>{c.name}</span>
@@ -158,11 +164,6 @@ export default function SamplePage() {
               </div>
             </div>
           )}
-          <div className="card row small" style={{ padding: '12px 14px' }}>
-            <div className="spacer"><strong>Pass mark</strong><div className="tiny faint">Fixed before the readers run</div></div>
-            <span className="pill neutral">κ ≥ {project.kappaThreshold.toFixed(2)}</span>
-            <Lock size={14} color="var(--ink3)" />
-          </div>
         </div>
       </div>
     </>

@@ -81,7 +81,7 @@ export default function CodebookPage() {
         <div className="card stack" style={{ width: 290, flex: 'none', padding: '16px 10px', gap: 4 }}>
           <div className="stack" style={{ padding: '0 8px 12px', borderBottom: '1px solid var(--rule)', gap: 6 }}>
             <span className="label">Research question</span>
-            <textarea className="textarea" style={{ minHeight: 64, fontSize: 13.5 }} value={rq} onChange={(e) => setRq(e.target.value)} onBlur={() => db.projects.update(pid, { researchQuestion: rq })} />
+            <textarea className="textarea" rows={3} style={{ fontSize: 13.5 }} value={rq} onChange={(e) => setRq(e.target.value)} onBlur={() => db.projects.update(pid, { researchQuestion: rq })} />
           </div>
           <div className="row" style={{ padding: '10px 8px 4px' }}>
             <strong className="small">Codes</strong><span className="small faint spacer">{codes.length}</span>

@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
-import { BookOpen, Cloud, EyeOff, FileCheck, Pause, Send, Text } from 'lucide-react';
+import { Cloud, Pause, Send } from 'lucide-react';
 import { db } from '../../db/db';
 import { usePid, useCodebook, useTranscripts } from '../../app/hooks';
 import { studyStats } from '../../app/stats';
@@ -51,32 +51,16 @@ export default function CloudPage() {
   return (
     <>
       <PageHead title="Cloud reader" sub={reader.isPractice ? reader.modelName : 'Gemini, through Firebase'} />
-      <div className="work">
-        <div className="grow stack" style={{ gap: 14 }}>
-          <div className="row" style={{ gap: 12 }}>
-            {[
-              [FileCheck, `${approvedTs.length} of ${transcripts.length}`, 'access copies approved'],
-              [Text, approvedParas.toLocaleString(), 'paragraphs'],
-              [EyeOff, (hiddenWords ?? 0).toLocaleString(), 'words hidden'],
-            ].map(([Icon, n, l]) => {
-              const I = Icon as typeof Cloud;
-              return (
-                <div key={l as string} className="card pad grow stack" style={{ gap: 2 }}>
-                  <span className="row" style={{ gap: 8 }}><I size={15} color="var(--cloud)" /><strong style={{ fontSize: 22 }}>{n as string}</strong></span>
-                  <span className="small muted">{l as string}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="paper">
-            <div className="row" style={{ padding: '14px 22px', borderBottom: '1px solid var(--rule)' }}>
+      <div className="work pane">
+          <div className="paper grow" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="row" style={{ padding: '12px 22px', borderBottom: '1px solid var(--rule)', flex: 'none' }}>
               <Cloud size={16} color="var(--cloud)" />
               <strong className="cloud spacer">What the cloud reader will see</strong>
               {approvedTs.length > 0 && (
                 <Select label="Interview" style={{ width: 200 }} value={shownId ?? ''} onChange={setTid} options={approvedTs.map((t) => ({ value: t.id, label: t.title }))} />
               )}
             </div>
-            <div className="stack" style={{ padding: '18px 28px', gap: 14, maxHeight: 560, overflow: 'auto' }}>
+            <div className="stack" style={{ padding: '18px 28px', gap: 14, overflow: 'auto', flex: 1 }}>
               {!approvedTs.length && <div className="empty small">No access copies approved yet. Approve them on the Access copies page.</div>}
               {copies?.map((c) => (
                 <div key={c.segmentId} className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
@@ -86,15 +70,19 @@ export default function CloudPage() {
               ))}
             </div>
           </div>
-        </div>
-        <div className="stack" style={{ width: 360, flex: 'none', gap: 12 }}>
+        <div className="stack side" style={{ width: 360, flex: 'none', gap: 12 }}>
           <div className="card lift pad stack" style={{ gap: 14 }}>
             <div className="row">
               <span style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--cloud-tint)', display: 'grid', placeItems: 'center' }}><Cloud size={20} color="var(--cloud)" /></span>
               <strong style={{ fontSize: 17 }}>Send to the cloud reader</strong>
             </div>
+            <dl className="facts">
+              <dt>Access copies approved</dt><dd>{approvedTs.length} of {transcripts.length}</dd>
+              <dt>Paragraphs</dt><dd>{approvedParas.toLocaleString()}</dd>
+              <dt>Words hidden</dt><dd>{(hiddenWords ?? 0).toLocaleString()}</dd>
+              <dt>Code definitions</dt><dd>{book?.codes.length ?? 0}</dd>
+            </dl>
             {!reader.isPractice && <CloudTermsNotice />}
-            <span className="row small muted"><BookOpen size={14} /> Also sent: your {book?.codes.length ?? 0} code definitions</span>
             {running ? (
               <>
                 <div className="row" style={{ alignItems: 'baseline' }}><strong style={{ fontSize: 28 }}>{done}</strong><span className="muted spacer">of {run!.progress.total} paragraphs</span><span className="small cloud">{eta(run)}</span></div>
@@ -109,7 +97,7 @@ export default function CloudPage() {
                 </button>
               </>
             )}
-            {approvedTs.length < transcripts.length && <span className="tiny faint">Only approved copies are sent. {transcripts.length - approvedTs.length} still need approval.</span>}
+            {approvedTs.length < transcripts.length && <span className="tiny faint">Only approved copies are sent. {transcripts.length - approvedTs.length} still need{transcripts.length - approvedTs.length === 1 ? 's' : ''} approval.</span>}
             {run?.error && <div className="notice small">The cloud reader stopped: {run.error}</div>}
           </div>
         </div>

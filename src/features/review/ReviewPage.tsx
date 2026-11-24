@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, CheckCircle2, Circle, Cloud, Laptop, X } from 'lucide-react';
 import { db } from '../../db/db';
 import { codeColor, paraNo, usePid } from '../../app/hooks';
-import { Empty, PageHead, Track } from '../../app/ui';
+import { Empty, PageHead, revealIn, Track } from '../../app/ui';
 import { decide, disagreements, type Disagreement } from '../../services/results';
 import type { DecisionOutcome } from '../../types';
 
@@ -54,6 +54,11 @@ export default function ReviewPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [act, open.length]);
 
+  const paperRef = useRef<HTMLDivElement>(null);
+  const focusKey = item ? `${item.segment.id}:${item.code.id}` : '';
+  useEffect(() => {
+    revealIn(paperRef.current, '.para.cur');
+  }, [focusKey, context]);
   if (!all) return null;
   const total = all.length;
   const decided = total - open.length;
@@ -63,36 +68,30 @@ export default function ReviewPage() {
   return (
     <>
       <PageHead title="Disagreements" sub={item ? `${titles?.get(item.segment.transcriptId) ?? ''}` : undefined}>
-        <span className="row small" style={{ gap: 14 }}>
-          <span className="row" style={{ gap: 5 }}><span className="rdot on" style={{ color: 'var(--ink)', width: 10, height: 10 }} /> You</span>
-          <span className="row laptop" style={{ gap: 5 }}><span className="rdot on" style={{ width: 10, height: 10 }} /> Laptop</span>
-          <span className="row cloud" style={{ gap: 5 }}><span className="rdot on" style={{ width: 10, height: 10 }} /> Cloud</span>
-        </span>
       </PageHead>
-      <div className="work">
+      <div className="work pane">
         {!item ? (
           <div className="grow"><Empty action={<Link className="btn primary" to="../report">Build the report</Link>}><CheckCircle2 size={22} /> <div>All {total} disagreements decided.</div></Empty></div>
         ) : (
-          <div className="paper grow doc">
+          <div ref={paperRef} className="paper grow doc">
             <h2>{titles?.get(item.segment.transcriptId)}</h2>
             {context?.map((s) => {
               const focus = s.id === item.segment.id;
               return (
-                <div key={s.id} className={`para${focus ? '' : ' ctx'}${s.isInterviewer ? ' iv' : ''}`} style={focus ? { boxShadow: 'inset 4px 0 0 var(--attn)' } : undefined}>
-                  <span className="ln" style={focus ? { color: 'var(--attn)' } : undefined}>{paraNo(s.index)}</span>
+                <div key={s.id} className={`para${focus ? ' cur' : ' ctx'}${s.isInterviewer ? ' iv' : ''}`}>
+                  <span className="ln">{paraNo(s.index)}</span>
                   <div>
                     <div className="who">{s.isInterviewer ? 'Interviewer' : 'Participant'}</div>
-                    <div className="tx" style={focus ? { fontSize: 18.5, lineHeight: 1.75 } : undefined}>
+                    <div className="tx">
                       {focus ? <Highlight text={s.text} quote={item.laptopEvidence ?? item.cloudEvidence} /> : s.text}
                     </div>
                   </div>
                   {focus ? (
                     <div className="stack" style={{ width: 150, gap: 6, paddingTop: 22 }}>
                       <span className="row tiny" style={{ fontWeight: 700 }}><span className="cbar" style={{ background: codeColor(item.code), height: 12 }} />{item.code.name}</span>
-                      <span className="row" style={{ gap: 6, paddingLeft: 9 }}>
-                        <span className="rdot pending" />
-                        <span className={`rdot${item.laptop ? ' on' : ''}`} style={{ color: 'var(--laptop)' }} />
-                        <span className={`rdot${item.cloud ? ' on' : ''}`} style={{ color: 'var(--cloud)' }} />
+                      <span className="row tiny" style={{ gap: 12, paddingLeft: 9, fontWeight: 700 }}>
+                        <span className="row laptop" style={{ gap: 4, opacity: item.laptop ? 1 : 0.5 }} title={`Laptop reader: ${item.laptop ? 'yes' : 'no'}`}><Laptop size={13} /> {item.laptop ? 'Yes' : 'No'}</span>
+                        <span className="row cloud" style={{ gap: 4, opacity: item.cloud ? 1 : 0.5 }} title={`Cloud reader: ${item.cloud ? 'yes' : 'no'}`}><Cloud size={13} /> {item.cloud ? 'Yes' : 'No'}</span>
                       </span>
                     </div>
                   ) : <span />}
@@ -102,7 +101,7 @@ export default function ReviewPage() {
           </div>
         )}
 
-        <div className="stack" style={{ width: 340, flex: 'none', gap: 14 }}>
+        <div className="stack side" style={{ width: 340, flex: 'none', gap: 14 }}>
           <div className="stack" style={{ gap: 8 }}>
             <div className="row" style={{ alignItems: 'baseline' }}><span className="big">{open.length}</span><span className="muted spacer">decisions left</span><span className="small faint">{decided} of {total} done</span></div>
             <Track value={decided} total={total} />
@@ -143,7 +142,7 @@ export default function ReviewPage() {
             </div>
           )}
           {open.length > 1 && (
-            <div className="stack" style={{ gap: 2 }}>
+            <div className="stack shrink" style={{ gap: 2 }}>
               <div className="row"><span className="label spacer">Up next</span><span className="kbd">J</span><span className="kbd">K</span></div>
               {open.slice(cursor + 1, cursor + 4).map((d) => (
                 <div key={`${d.segment.id}:${d.code.id}`} className="row" style={{ padding: '8px 0', borderTop: '1px solid var(--rule)', alignItems: 'flex-start' }}>
