@@ -2,12 +2,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
-  Activity, BookOpen, BookOpenCheck, ChevronsUpDown, Cloud, EyeOff, Files, GitCompareArrows, LayoutDashboard, Laptop, Scale, FileChartColumn, UserRound,
+  Activity, BookOpen, ChevronsUpDown, Cloud, EyeOff, Files, GitCompareArrows, LayoutDashboard, Laptop, Scale, FileChartColumn, UserRound,
 } from 'lucide-react';
 import { db } from '../db/db';
 import { practiceMode } from '../ai/registry';
 import { usePid, useProject } from './hooks';
 import { studyStats } from './stats';
+import { Logo } from './Logo';
 
 function pct(done: number, total: number) {
   if (!total) return '';
@@ -36,7 +37,7 @@ export function Nav() {
   return (
     <nav className="nav" aria-label="Study">
       <Link to="/studies" className="brand">
-        <span className="logo"><BookOpenCheck size={13} /></span> QualCheck
+        <Logo size={22} fontSize={15} />
       </Link>
       <div style={{ position: 'relative' }}>
         <button className="switcher" onClick={() => setOpen((o) => !o)} aria-expanded={open}>

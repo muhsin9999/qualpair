@@ -113,7 +113,7 @@ export default function SamplePage() {
 
   return (
     <>
-      <PageHead title="Your sample" sub={`Code these yourself. Both readers are scored against you.${sample.madeByTeam ? ' (This sample was coded by the QualCheck team to show the workflow.)' : ''}`}>
+      <PageHead title="Your sample" sub={`Code these yourself. Both readers are scored against you.${sample.madeByTeam ? ' (This sample was coded by the QualPair team to show the workflow.)' : ''}`}>
         <button className="btn ghost small" onClick={() => { if (confirm('Draw a new sample? Your sample coding will be cleared.')) void resetSample(pid); }}>Redraw sample</button>
       </PageHead>
       <div className="work pane">

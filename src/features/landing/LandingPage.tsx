@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BookOpenCheck, ChartColumn, Check, CircleCheck, CircleX, Cloud, Download, Laptop, LoaderCircle, RotateCcw, Scale, UserRound } from 'lucide-react';
+import { ArrowRight, ChartColumn, Check, CircleCheck, CircleX, Cloud, Download, Laptop, LoaderCircle, RotateCcw, Scale, UserRound } from 'lucide-react';
 import { db } from '../../db/db';
 import { loadSampleProject } from '../../services/sample';
 import type { DeviceStatus } from '../../ai/readers';
+import { Logo } from '../../app/Logo';
 
 /** A real paragraph from the sample study (Zhang 2026, CC BY 4.0, interview 2). `ev` marks the words behind each code. */
 const PARA: Array<{ t: string; ev?: Ev; hide?: boolean }> = [
@@ -202,7 +203,7 @@ export function LandingPage() {
     <div className="ld">
       <header className="ld-top">
         <Link to="/" className="row" style={{ gap: 10, fontWeight: 800, fontSize: 18, textDecoration: 'none', color: 'var(--ink)' }}>
-          <span className="logo" style={{ width: 28, height: 28 }}><BookOpenCheck size={16} /></span> QualCheck
+          <Logo size={30} fontSize={19} />
         </Link>
         <span className="spacer" />
         <Link className="ld-link" to="/eval">How accurate is it?</Link>

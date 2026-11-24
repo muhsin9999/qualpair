@@ -1,5 +1,5 @@
 /**
- * Core contracts for QualCheck. Every module imports its data shapes from here.
+ * Core contracts for QualPair. Every module imports its data shapes from here.
  * Changing a type here is a contract change: update the Dexie schema and tests with it.
  */
 
@@ -145,7 +145,7 @@ export interface Sample {
   kind: 'calibration';
   segmentIds: Id[];
   seed: number;
-  /** True for the demo sample coded by the QualCheck team. */
+  /** True for the demo sample coded by the QualPair team. */
   madeByTeam: boolean;
   createdAt: number;
 }

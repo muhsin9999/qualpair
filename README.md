@@ -1,8 +1,8 @@
-# QualCheck
+# QualPair
 
 **Code qualitative interviews with two AI readers, and keep yourself as the yardstick.**
 
-Researchers who analyse confidential interviews (health, migration, NGO evaluations) can't paste transcripts into a chatbot, and they can't show a supervisor or ethics board how reliable AI coding is. QualCheck splits the work so the private part stays on the laptop:
+Researchers who analyse confidential interviews (health, migration, NGO evaluations) can't paste transcripts into a chatbot, and they can't show a supervisor or ethics board how reliable AI coding is. QualPair splits the work so the private part stays on the laptop:
 
 | Step | Who reads | What they see | Where it runs |
 |---|---|---|---|

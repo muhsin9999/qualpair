@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'sample/interviews.json'],
       manifest: {
-        name: 'QualCheck',
-        short_name: 'QualCheck',
+        name: 'QualPair',
+        short_name: 'QualPair',
         description: 'Code qualitative interviews with a laptop reader, a cloud reader and you as the yardstick.',
         theme_color: '#1d2422',
         background_color: '#f3f1ec',

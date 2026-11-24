@@ -35,7 +35,7 @@ function ModelStatus({ onReady }: { onReady: () => void }) {
         <strong>The laptop reader can’t run in this browser</strong>
         <span className="small muted">
           {status === 'unsupported'
-            ? 'It needs desktop Chrome with the built-in model (Gemini Nano). Open QualCheck in Chrome on a laptop or desktop.'
+            ? 'It needs desktop Chrome with the built-in model (Gemini Nano). Open QualPair in Chrome on a laptop or desktop.'
             : 'Chrome says the model is unavailable on this computer, usually because of disk space (about 22 GB free needed) or hardware. Check chrome://on-device-internals for the reason.'}
         </span>
         <span className="small">Your transcripts will <strong>not</strong> be sent to the cloud instead.</span>

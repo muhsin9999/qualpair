@@ -31,7 +31,7 @@ export function qdcXml(projectName: string, codes: Code[]): string {
       return `    <Code guid="${c.id}" name="${xmlEscape(c.name)}" isCodable="true" color="${HEX[c.color % 8]}">\n      <Description>${xmlEscape(desc)}</Description>\n    </Code>`;
     })
     .join('\n');
-  return `<?xml version="1.0" encoding="utf-8"?>\n<CodeBook xmlns="urn:QDA-XML:codebook:1.0" origin="QualCheck">\n  <!-- ${xmlEscape(projectName)} -->\n  <Codes>\n${body}\n  </Codes>\n</CodeBook>\n`;
+  return `<?xml version="1.0" encoding="utf-8"?>\n<CodeBook xmlns="urn:QDA-XML:codebook:1.0" origin="QualPair">\n  <!-- ${xmlEscape(projectName)} -->\n  <Codes>\n${body}\n  </Codes>\n</CodeBook>\n`;
 }
 
 export function csvCell(v: unknown): string {

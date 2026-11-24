@@ -104,6 +104,6 @@ export async function buildDocx(d: ReportData, order: SectionId[]): Promise<Blob
       kids.push(apaTable(['COREQ item', 'Answer'], coreqRows(d).map((r) => [`${r.no}. ${r.item}`, r.answer])));
     }
   }
-  const doc = new Document({ creator: 'QualCheck', title: d.settings.title, styles: { default: { document: { run: { font: FONT, size: BASE }, paragraph: { spacing: { line: Math.round(240 * style.lineSpacing) } } } } }, sections: [{ children: kids }] });
+  const doc = new Document({ creator: 'QualPair', title: d.settings.title, styles: { default: { document: { run: { font: FONT, size: BASE }, paragraph: { spacing: { line: Math.round(240 * style.lineSpacing) } } } } }, sections: [{ children: kids }] });
   return Packer.toBlob(doc);
 }

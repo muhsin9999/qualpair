@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BookOpenCheck, Cloud, Laptop, Play, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, Cloud, Laptop, Play, Plus, Trash2 } from 'lucide-react';
 import { db } from '../../db/db';
 import { createProject, deleteProject } from '../../services/core';
 import { loadSampleProject } from '../../services/sample';
@@ -10,6 +10,7 @@ import { studyStats } from '../../app/stats';
 import { useRuns, eta, isRunning, isWarmingUp } from '../../app/runs';
 import { kappaBand } from '../../domain/stats/agreement';
 import type { Project } from '../../types';
+import { Logo } from '../../app/Logo';
 
 function median(xs: number[]) {
   if (!xs.length) return null;
@@ -87,7 +88,7 @@ export function ProjectsPage() {
   return (
     <div style={{ minHeight: '100%', padding: '18px 40px 40px' }}>
       <Link to="/" className="row" style={{ fontWeight: 800, textDecoration: 'none', color: 'var(--ink)', width: 'fit-content' }}>
-        <span className="logo" style={{ width: 26, height: 26 }}><BookOpenCheck size={15} /></span> QualCheck
+        <Logo size={26} fontSize={17} />
       </Link>
       <div className="center-col stack" style={{ gap: 22, marginTop: 28 }}>
         <div className="row">

@@ -17,7 +17,7 @@ import type {
 /**
  * All project data lives in the browser's IndexedDB. Nothing here is synced anywhere.
  */
-export class QualCheckDB extends Dexie {
+export class QualPairDB extends Dexie {
   projects!: EntityTable<Project, 'id'>;
   participants!: EntityTable<Participant, 'id'>;
   transcripts!: EntityTable<Transcript, 'id'>;
@@ -31,6 +31,7 @@ export class QualCheckDB extends Dexie {
   ledger!: EntityTable<LedgerEntry, 'id'>;
   reports!: EntityTable<ReportSettings, 'projectId'>;
 
+  // The database keeps the app's earlier name, so studies saved before the rename stay.
   constructor(name = 'qualcheck') {
     super(name);
     this.version(1).stores({
@@ -50,7 +51,7 @@ export class QualCheckDB extends Dexie {
   }
 }
 
-export const db = new QualCheckDB();
+export const db = new QualPairDB();
 
 export function newId(): string {
   return crypto.randomUUID();

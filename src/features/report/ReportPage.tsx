@@ -69,7 +69,7 @@ function Section({ id, d, accent }: { id: SectionId; d: ReportData; accent: stri
         <div>
           <div className="fig-num">Figure 1</div><div className="fig-title">Number of Participants Who Discussed Each Theme</div>
           <Svg svg={prevalenceSvg(d.themes, N, d.settings.highlightCodeId, accent)} />
-          <div className="note"><i>Note.</i> Counts show participants (n = {N}) with at least one paragraph coded to each theme after disagreements were resolved.{d.themes.some((t) => t.heldBack) ? ` ${d.themes.filter((t) => t.heldBack).map((t) => `“${t.code.name}”`).join(', ')} not shown: agreement was below the pass mark (κ < ${d.threshold.toFixed(2)}).` : ''} Source: QualCheck analysis of {N} interview transcripts.</div>
+          <div className="note"><i>Note.</i> Counts show participants (n = {N}) with at least one paragraph coded to each theme after disagreements were resolved.{d.themes.some((t) => t.heldBack) ? ` ${d.themes.filter((t) => t.heldBack).map((t) => `“${t.code.name}”`).join(', ')} not shown: agreement was below the pass mark (κ < ${d.threshold.toFixed(2)}).` : ''} Source: QualPair analysis of {N} interview transcripts.</div>
         </div>
       );
     case 'themes':
@@ -192,7 +192,7 @@ export default function ReportPage() {
   async function backup() {
     const dump: Record<string, unknown> = {};
     for (const t of db.tables) dump[t.name] = t.name === 'projects' ? [await db.projects.get(pid)] : t.name === 'reports' ? [await db.reports.get(pid)] : await t.where('projectId').equals(pid).toArray();
-    downloadText(`${d!.project.name} backup.json`, JSON.stringify({ app: 'QualCheck', version: 1, exportedAt: new Date().toISOString(), data: dump }), 'application/json');
+    downloadText(`${d!.project.name} backup.json`, JSON.stringify({ app: 'QualPair', version: 1, exportedAt: new Date().toISOString(), data: dump }), 'application/json');
   }
 
   const printPdf = () => { document.body.classList.add('print-report'); window.print(); document.body.classList.remove('print-report'); };

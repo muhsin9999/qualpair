@@ -108,7 +108,7 @@ export default function EvalPage() {
         {SAVED.map((r) => <ResultTable key={`${r.reader}-${r.date}`} r={r} note={`measured ${new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`} />)}
         <strong style={{ marginTop: SAVED.length ? 12 : 0 }}>Run it yourself</strong>
         <div className="card pad stack">
-          <span className="small muted">12 codes, interviewee turns as units, a random sample (seed 2026). The reference is one expert coder, not a gold standard. Code definitions were written by the QualCheck team from the dataset’s code names.</span>
+          <span className="small muted">12 codes, interviewee turns as units, a random sample (seed 2026). The reference is one expert coder, not a gold standard. Code definitions were written by the QualPair team from the dataset’s code names.</span>
           <label className="row small">Units <input className="input" type="number" min={10} max={747} value={n} onChange={(e) => setN(Number(e.target.value))} style={{ width: 100 }} /></label>
           <div className="row">
             <button className="btn primary" disabled={!!progress} onClick={() => run('laptop')}><Laptop size={16} /> Run laptop reader</button>
