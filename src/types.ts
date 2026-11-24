@@ -192,5 +192,11 @@ export interface ReportSettings {
   hiddenSections: string[];
   sectionOrder: string[];
   highlightCodeId?: Id;
+  /** Text style for the preview, the Word file and the PDF. Unset = the template's default. */
+  font?: ReportFont;
+  fontSize?: 11 | 12;
+  lineSpacing?: 1 | 1.5 | 2;
   updatedAt: number;
 }
+
+export type ReportFont = 'Times New Roman' | 'Georgia' | 'Calibri' | 'Arial';

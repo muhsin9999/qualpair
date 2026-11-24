@@ -68,6 +68,16 @@ export function defaultSettings(project: Project): ReportSettings {
   };
 }
 
+/** The text style in force: the researcher's choice, or the template's default (APA 7: Times New Roman 12, double). */
+export function reportStyle(s: Pick<ReportSettings, 'template' | 'font' | 'fontSize' | 'lineSpacing'>) {
+  const apa = s.template === 'apa';
+  return {
+    font: s.font ?? (apa ? 'Times New Roman' : 'Calibri'),
+    fontSize: s.fontSize ?? (apa ? 12 : 11),
+    lineSpacing: s.lineSpacing ?? (apa ? 2 : 1),
+  } as const;
+}
+
 export async function reportSettings(projectId: string): Promise<ReportSettings | undefined> {
   const s = await db.reports.get(projectId);
   if (s) return s;

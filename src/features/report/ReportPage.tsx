@@ -1,21 +1,31 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { ArrowDown, ArrowUp, Download, Eye, EyeOff, FileText, Printer } from 'lucide-react';
 import { usePid } from '../../app/hooks';
-import { PageHead } from '../../app/ui';
+import { PageHead, Segmented } from '../../app/ui';
 import { db } from '../../db/db';
 import { formatKappa } from '../../domain/stats/agreement';
 import {
-  buildReport, dataFlowText, limitationsText, methodText, reportSettings, saveReportSettings, SECTIONS, summarySentences, type ReportData, type SectionId,
+  buildReport, dataFlowText, reportStyle, limitationsText, methodText, reportSettings, saveReportSettings, SECTIONS, summarySentences, type ReportData, type SectionId,
 } from '../../services/report';
 import { downloadBlob, downloadText, qdcXml, toCsv } from '../../services/export';
 import { PagedPreview } from './PagedPreview';
+import { Select } from '../../app/Select';
 import { ACCENTS, agreementSvg, matrixSvg, prevalenceSvg, svgToPng } from './figures';
 import { buildDocx } from './docx';
 import { coreqRows } from './coreq';
 import { codableSegments, currentCodebook } from '../../services/core';
 import { finalCodes } from '../../services/results';
-import type { ReportSettings } from '../../types';
+import type { ReportFont, ReportSettings } from '../../types';
+
+const FONTS: ReportFont[] = ['Times New Roman', 'Georgia', 'Calibri', 'Arial'];
+/** Each Office font with its free metric-compatible stand-ins, for computers without it. */
+const FONT_STACK: Record<ReportFont, string> = {
+  'Times New Roman': "'Times New Roman', Tinos, 'Liberation Serif', Times, serif",
+  Georgia: "Georgia, Gelasio, serif",
+  Calibri: "Calibri, Carlito, 'Source Sans 3', sans-serif",
+  Arial: "Arial, Arimo, 'Liberation Sans', Helvetica, sans-serif",
+};
 
 const FIGS: SectionId[] = ['fig-prevalence', 'fig-agreement', 'app-matrix'];
 
@@ -136,6 +146,9 @@ export default function ReportPage() {
   };
   if (!settings || !d) return null;
   const accent = ACCENTS[accentIdx]!;
+  const style = reportStyle(settings);
+  // On screen an A4 sheet is 640 px wide (0.81 of real size), so 1 pt ≈ 1.075 px. Word's "single" ≈ CSS 1.2.
+  const repStyle = { '--rep-font': FONT_STACK[style.font], '--rep-size': `${(style.fontSize * 1.075).toFixed(2)}px`, '--rep-lh': String(style.lineSpacing === 1 ? 1.2 : style.lineSpacing === 1.5 ? 1.75 : 2.3) } as CSSProperties;
   const order = (settings.sectionOrder.filter((s) => SECTIONS.some((x) => x.id === s)) as SectionId[]).concat(SECTIONS.map((s) => s.id).filter((id) => !settings.sectionOrder.includes(id)));
   const visible = order.filter((id) => !settings.hiddenSections.includes(id));
   const save = (s: Partial<ReportSettings>) => saveReportSettings({ ...settings, ...s });
@@ -188,13 +201,17 @@ export default function ReportPage() {
       {busy && <div className="notice neutral" style={{ margin: '12px 32px 0' }}>{busy}</div>}
       <div className="work fill" style={{ paddingTop: 16 }}>
         <div className="stack side-col" style={{ width: 240, flex: 'none', gap: 2 }}>
-          <label className="field" style={{ marginBottom: 10 }}>
+          <div className="field" style={{ marginBottom: 10 }}>
             <span className="small faint" style={{ fontWeight: 400 }}>Template</span>
-            <select className="select" style={{ fontWeight: 700 }} value={settings.template} onChange={(e) => save({ template: e.target.value as ReportSettings['template'] })}>
-              <option value="apa">Academic (APA 7)</option>
-              <option value="evaluation">Evaluation report</option>
-            </select>
-          </label>
+            <Select label="Template" strong value={settings.template} onChange={(v) => save({ template: v })}
+              options={[{ value: 'apa', label: 'Academic (APA 7)' }, { value: 'evaluation', label: 'Evaluation report' }]} />
+          </div>
+          <span className="label">Text</span>
+          <div className="stack" style={{ gap: 6, marginBottom: 14 }}>
+            <Select label="Font" value={style.font} onChange={(v) => save({ font: v })} options={FONTS.map((f) => ({ value: f, label: f }))} />
+            <Segmented label="Text size" value={style.fontSize} onChange={(v) => save({ fontSize: v })} options={[[11, '11 pt'], [12, '12 pt']]} />
+            <Segmented label="Line spacing" value={style.lineSpacing} onChange={(v) => save({ lineSpacing: v })} options={[[1, 'Single'], [1.5, '1.5'], [2, 'Double']]} />
+          </div>
           <span className="label">Sections</span>
           {order.map((id) => {
             const hidden = settings.hiddenSections.includes(id);
@@ -217,7 +234,7 @@ export default function ReportPage() {
           <button className="btn small" onClick={backup}><Download size={14} /> Study backup (.json)</button>
         </div>
 
-        <PagedPreview header={d.settings.title} jump={jump}>
+        <PagedPreview header={d.settings.title} jump={jump} repStyle={repStyle}>
           {d.practice && <div className="notice" style={{ fontFamily: 'var(--ui)', fontSize: 10, marginBottom: 8 }}>Draft made with practice readers (keyword rules, no AI). Not for reporting.</div>}
           {visible.map((id) => (
             <div key={id} data-sec={id} className={sel === id ? 'sel-block' : ''} onClick={() => setSel(id)} style={{ marginBottom: 14, cursor: 'pointer' }}>
@@ -240,11 +257,9 @@ export default function ReportPage() {
             <div className="stack" style={{ padding: 16, gap: 14 }}>
               {sel === 'fig-prevalence' && (
                 <>
-                  <label className="field"><span>Highlight</span>
-                    <select className="select" value={settings.highlightCodeId ?? ''} onChange={(e) => save({ highlightCodeId: e.target.value || undefined })}>
-                      <option value="">Largest theme</option>
-                      {d.themes.map((t) => <option key={t.code.id} value={t.code.id}>{t.code.name}</option>)}
-                    </select></label>
+                  <div className="field"><span>Highlight</span>
+                    <Select label="Highlight" value={settings.highlightCodeId ?? ''} onChange={(v) => save({ highlightCodeId: v || undefined })}
+                      options={[{ value: '', label: 'Largest theme' }, ...d.themes.map((t) => ({ value: t.code.id, label: t.code.name }))]} /></div>
                   <div className="row"><span className="small muted spacer">Highlight colour</span>
                     {ACCENTS.map((c, i) => <button key={c} aria-label={`Colour ${i + 1}`} onClick={() => setAccentIdx(i)} style={{ width: 20, height: 20, borderRadius: 10, background: c, border: accentIdx === i ? '2px solid var(--ink)' : 'none', outline: accentIdx === i ? '2px solid #fff' : 'none', outlineOffset: -4, cursor: 'pointer' }} />)}
                   </div>

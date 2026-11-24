@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Check, Lock } from 'lucide-react';
 import { db } from '../../db/db';
 import { codeColor, paraNo, usePid, useCodebook, useProject } from '../../app/hooks';
 import { PageHead, Track } from '../../app/ui';
+import { Select } from '../../app/Select';
 import { ensureSample, getSample, resetSample, saveSegmentCoding } from '../../services/coding';
 import type { Segment } from '../../types';
 
@@ -21,15 +22,11 @@ function Setup({ pid }: { pid: string }) {
           <span>Share of paragraphs to code yourself: {Math.round(project.sampleShare * 100)}% (about {n} paragraphs)</span>
           <input type="range" min={10} max={25} step={1} value={Math.round(project.sampleShare * 100)} onChange={(e) => db.projects.update(pid, { sampleShare: Number(e.target.value) / 100 })} />
         </label>
-        <label className="field">
+        <div className="field">
           <span>Pass mark (Cohen’s κ), fixed now, before any reader runs</span>
-          <select className="select" style={{ width: 260 }} value={project.kappaThreshold} onChange={(e) => db.projects.update(pid, { kappaThreshold: Number(e.target.value) })}>
-            <option value={0.4}>0.40 · moderate</option>
-            <option value={0.6}>0.60 · substantial (common choice)</option>
-            <option value={0.7}>0.70 · strict</option>
-            <option value={0.8}>0.80 · very strict</option>
-          </select>
-        </label>
+          <Select label="Pass mark" style={{ width: 300 }} value={project.kappaThreshold} onChange={(v) => db.projects.update(pid, { kappaThreshold: v })}
+            options={[{ value: 0.4, label: '0.40 · moderate' }, { value: 0.6, label: '0.60 · substantial (common choice)' }, { value: 0.7, label: '0.70 · strict' }, { value: 0.8, label: '0.80 · very strict' }]} />
+        </div>
         <button className="btn primary" style={{ alignSelf: 'flex-start' }} disabled={!codable} onClick={() => ensureSample(pid)}>Draw my sample</button>
         {!codable && <span className="small faint">Import interviews first.</span>}
       </div>

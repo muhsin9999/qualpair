@@ -5,6 +5,7 @@ import { db } from '../../db/db';
 import { usePid, useCodebook, useTranscripts } from '../../app/hooks';
 import { studyStats } from '../../app/stats';
 import { PageHead, Track } from '../../app/ui';
+import { Select } from '../../app/Select';
 import { eta, isRunning, useRuns } from '../../app/runs';
 import { getCloudReader } from '../../ai/registry';
 import { CloudTermsNotice } from './CloudTermsNotice';
@@ -72,9 +73,7 @@ export default function CloudPage() {
               <Cloud size={16} color="var(--cloud)" />
               <strong className="cloud spacer">What the cloud reader will see</strong>
               {approvedTs.length > 0 && (
-                <select className="select" style={{ width: 'auto' }} value={shownId} onChange={(e) => setTid(e.target.value)}>
-                  {approvedTs.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-                </select>
+                <Select label="Interview" style={{ width: 200 }} value={shownId ?? ''} onChange={setTid} options={approvedTs.map((t) => ({ value: t.id, label: t.title }))} />
               )}
             </div>
             <div className="stack" style={{ padding: '18px 28px', gap: 14, maxHeight: 560, overflow: 'auto' }}>

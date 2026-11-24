@@ -70,10 +70,12 @@ interface Props {
   /** Section to scroll to and highlight; changes to `jump.n` trigger the scroll. */
   jump?: { id: string; n: number };
   style?: CSSProperties;
+  /** Typography for the report body (font, size, line spacing as CSS variables). */
+  repStyle?: CSSProperties;
   className?: string;
 }
 
-export function PagedPreview({ children, header, jump, style, className = '' }: Props) {
+export function PagedPreview({ children, header, jump, style, repStyle, className = '' }: Props) {
   const flowRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [breaks, setBreaks] = useState<number[]>([0, BODY_H]);
@@ -112,12 +114,12 @@ export function PagedPreview({ children, header, jump, style, className = '' }: 
   const pages = breaks.slice(0, -1).map((b, i) => [b, breaks[i + 1]! - b] as const);
   return (
     <div ref={scrollRef} className={`paged ${className}`} style={style}>
-      <div ref={flowRef} className="rep rep-flow report-print" style={{ width: BODY_W }}>{children}</div>
+      <div ref={flowRef} className="rep rep-flow report-print" style={{ ...repStyle, width: BODY_W }}>{children}</div>
       {pages.map(([offset, h], i) => (
-        <div key={i} className="a4-page" aria-label={`Page ${i + 1} of ${pages.length}`}>
+        <div key={i} className="a4-page" aria-hidden="true">
           <div className="a4-head">{header}</div>
           <div className="a4-body" style={{ top: PAD_T, left: PAD_X, width: BODY_W, height: h }}>
-            <div className="rep" style={{ transform: `translateY(${-offset}px)` }}>{children}</div>
+            <div className="rep" style={{ ...repStyle, transform: `translateY(${-offset}px)` }}>{children}</div>
           </div>
           <div className="a4-foot">{i + 1} of {pages.length}</div>
         </div>

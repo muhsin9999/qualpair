@@ -116,6 +116,26 @@ a { color: inherit; }
 .input, .textarea, .select { border: 1px solid var(--rule); border-radius: 8px; padding: 9px 12px; background: var(--page); width: 100%; }
 .textarea { min-height: 72px; resize: vertical; line-height: 1.45; }
 .input:focus, .textarea:focus, .select:focus { outline: 2px solid var(--ink); outline-offset: -1px; }
+/* Segmented control */
+.seg { display: flex; border: 1px solid var(--rule); border-radius: 8px; padding: 2px; gap: 2px; background: var(--page); }
+.seg button { flex: 1; border: 0; background: none; border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 13px; color: var(--ink2); cursor: pointer; white-space: nowrap; }
+.seg button:hover { color: var(--ink); }
+.seg button.on { background: var(--ink); color: #fff; font-weight: 700; }
+.seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+/* Dropdown (Select component) */
+.dd { position: relative; width: 100%; }
+.dd-btn { width: 100%; display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); border-radius: 8px; padding: 9px 12px; background: var(--page); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.dd-btn:hover { border-color: var(--ink3); }
+.dd-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: -1px; }
+.dd-val { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dd-chev { color: var(--ink3); flex: none; transition: transform 0.15s; }
+.dd-chev.open { transform: rotate(180deg); }
+.dd-list { position: absolute; z-index: 40; left: 0; top: calc(100% + 6px); min-width: 100%; max-height: 280px; overflow: auto; margin: 0; padding: 4px; list-style: none; background: var(--page); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); }
+.dd-list.up { top: auto; bottom: calc(100% + 6px); }
+.dd-opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; }
+.dd-opt.active { background: var(--sel); }
+.dd-opt.sel { font-weight: 700; }
 .switch { width: 34px; height: 20px; border-radius: 10px; background: var(--rule); border: 0; padding: 2px; cursor: pointer; display: inline-flex; flex: none; }
 .switch::after { content: ''; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.15s; }
 .switch.on { background: var(--ink); }
@@ -174,7 +194,7 @@ mark.q { background: rgb(201 138 30 / 0.22); box-shadow: inset 0 -2.5px 0 var(--
 .a4-body { position: absolute; overflow: hidden; }
 .a4-head { position: absolute; top: 22px; left: 52px; right: 52px; font: 9px var(--ui); color: #707071; border-bottom: 1px solid #e3e3e3; padding-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .a4-foot { position: absolute; bottom: 20px; right: 52px; font: 9px var(--ui); color: #707071; }
-.rep-flow { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
+.rep-flow { position: absolute; left: 0; top: 0; opacity: 0; z-index: -1; pointer-events: none; } /* measured, printed and read by screen readers; the sheets are the visual copy */
 .rep { --rep-font: var(--read); --rep-size: 11.5px; --rep-lh: 1.55; color: #222; font-family: var(--rep-font); font-size: var(--rep-size); line-height: var(--rep-lh); }
 .rep h1 { font: 600 calc(var(--rep-size) * 1.9)/1.25 var(--rep-font); margin: 6px 0; }
 .rep h2 { font: 600 calc(var(--rep-size) * 1.4)/1.3 var(--rep-font); margin: 18px 0 8px; }
@@ -203,9 +223,12 @@ mark.q { background: rgb(201 138 30 / 0.22); box-shadow: inset 0 -2.5px 0 var(--
 @media print {
   body.print-report * { visibility: hidden; }
   body.print-report .report-print, body.print-report .report-print * { visibility: visible; }
-  body.print-report .report-print { position: absolute; left: 0; top: 0; width: 100% !important; min-height: 0; box-shadow: none; padding: 0; }
+  /* The flow is laid out 536 px wide (an A4 sheet at 0.81 scale); zoom it to the printable width. */
+  body.print-report .report-print { position: absolute; left: 0; top: 0; zoom: 1.255; min-height: 0; box-shadow: none; padding: 0; }
   body.print-report .a4-page { display: none; }
-  body.print-report .paged, body.print-report .work.fill { overflow: visible; display: block; }
+  body.print-report .rep-flow { opacity: 1; z-index: auto; }
+  body.print-report .paged, body.print-report .work.fill { overflow: visible; display: block; position: static; }
+  body.print-report, body.print-report .shell, body.print-report .main { background: #fff; }
   body.print-report .sel-block { outline: none; }
   body.print-report .main { overflow: visible; }
 }
