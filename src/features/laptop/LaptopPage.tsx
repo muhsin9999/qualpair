@@ -144,7 +144,7 @@ export default function LaptopPage() {
                     <td style={{ width: 30 }}>{full ? <CheckCircle2 size={16} color="var(--laptop)" /> : active ? <LoaderCircle size={16} color="var(--laptop)" className="spin" /> : <Circle size={16} color="var(--ink3)" />}</td>
                     <td style={{ width: 180, fontWeight: active ? 700 : 500 }}>{t.title}</td>
                     <td><Track value={p.laptop} total={p.codable} kind="laptop" /></td>
-                    <td className="small faint" style={{ width: 110, textAlign: 'right' }}>{full ? `${p.codable} paragraphs` : `${p.laptop} / ${p.codable}`}</td>
+                    <td className="small faint" style={{ width: 130, textAlign: 'right', whiteSpace: 'nowrap' }}>{full ? `${p.codable} paragraphs` : `${p.laptop} / ${p.codable}`}</td>
                   </tr>
                 );
               })}

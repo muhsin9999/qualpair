@@ -73,7 +73,7 @@ export default function CodebookPage() {
 
   return (
     <>
-      <PageHead title="Codebook" sub={`One codebook for all interviews${book ? ` · version ${book.version}` : ''}`}>
+      <PageHead title="Codebook" sub={book ? `Version ${book.version}` : undefined}>
         {book && <button className="btn" onClick={() => downloadText(`${project.name} codebook.qdc`, qdcXml(project.name, book.codes), 'application/xml')}><Download size={15} /> .qdc</button>}
         <button className="btn primary" disabled={!dirty} onClick={save}>Save codebook</button>
       </PageHead>
@@ -91,7 +91,6 @@ export default function CodebookPage() {
             <button key={c.id} className={`nav-item${sel?.id === c.id ? ' active' : ''}`} style={{ background: sel?.id === c.id ? 'var(--sel)' : 'none', cursor: 'pointer', textAlign: 'left' }} onClick={() => setSelId(c.id)}>
               <span className="cbar" style={{ background: codeColor(c) }} />
               <span className="spacer">{c.name}</span>
-              {agFor(c.id) && !agFor(c.id)!.passes && (agFor(c.id)!.laptop || agFor(c.id)!.cloud) && <span className="dot" style={{ background: 'var(--attn)' }} title="Below the pass mark" />}
             </button>
           ))}
           <div style={{ height: 8 }} />
@@ -134,7 +133,7 @@ export default function CodebookPage() {
                 </div>
               )}
               <div className="row" style={{ borderTop: '1px solid var(--rule)', paddingTop: 14 }}>
-                <span className="small faint spacer">{dirty ? 'Unsaved changes' : book ? `Version ${book.version}` : ''}</span>
+                <span className="small faint spacer">{dirty ? 'Unsaved changes' : ''}</span>
                 <button className="btn small" onClick={remove}><Trash2 size={14} /> Delete code</button>
               </div>
             </div>

@@ -50,7 +50,6 @@ export default function OverviewPage() {
         <span className="big" style={{ color: `var(--${kind})` }}>{done.toLocaleString()}</span>
         <span className="muted">of {s.codable.toLocaleString()} paragraphs coded</span>
       </div>
-      <div className="small muted">{kind === 'laptop' ? 'Reads the original transcripts' : 'Reads only the approved access copies'}</div>
     </div>
   );
 
@@ -80,7 +79,6 @@ export default function OverviewPage() {
         </div>
 
         <div className="next-bar">
-          <span className="dot" style={{ background: 'var(--attn)' }} />
           <span className="spacer">{next.text}</span>
           <Link className="btn primary" to={next.to}>{next.cta} <ArrowRight size={16} /></Link>
         </div>

@@ -109,8 +109,8 @@ export default function ReviewPage() {
           </div>
           {item && (
             <div className="card lift" style={{ overflow: 'hidden' }}>
-              <div className="stack" style={{ padding: '16px 18px', gap: 8, boxShadow: `inset 4px 0 0 ${codeColor(item.code)}` }}>
-                <span className="row tiny attn" style={{ fontWeight: 700 }}><span className="dot" style={{ background: 'var(--attn)' }} /> The two readers disagree</span>
+              <div className="stack" style={{ padding: '16px 18px', gap: 8 }}>
+                <span className="tiny attn" style={{ fontWeight: 700 }}>The two readers disagree</span>
                 <strong style={{ fontSize: 19 }}>Is this “{item.code.name}”?</strong>
                 <span className="small muted">{item.code.definition}</span>
               </div>
@@ -147,7 +147,6 @@ export default function ReviewPage() {
               <div className="row"><span className="label spacer">Up next</span><span className="kbd">J</span><span className="kbd">K</span></div>
               {open.slice(cursor + 1, cursor + 4).map((d) => (
                 <div key={`${d.segment.id}:${d.code.id}`} className="row" style={{ padding: '8px 0', borderTop: '1px solid var(--rule)', alignItems: 'flex-start' }}>
-                  <span className="dot" style={{ background: codeColor(d.code), marginTop: 6 }} />
                   <div className="spacer" style={{ minWidth: 0 }}>
                     <div className="small" style={{ fontWeight: 600 }}>{d.code.name}</div>
                     <div className="tiny muted" style={{ fontFamily: 'var(--read)', fontStyle: 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>“{d.segment.text.slice(0, 70)}…”</div>

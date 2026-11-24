@@ -97,7 +97,7 @@ export function ProjectsPage() {
         {live && liveProject && (
           <Link to={`/p/${live.pid}/${live.kind}`} className="card" style={{ background: 'var(--ink)', color: '#fff', padding: '24px 28px', textDecoration: 'none', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24 }}>
             <div className="stack" style={{ gap: 10 }}>
-              <div className="row tiny" style={{ color: '#7fd1be', fontWeight: 700, letterSpacing: '0.1em' }}><span className="dot" style={{ background: '#7fd1be' }} /> READING NOW</div>
+              <div className="row tiny" style={{ color: '#7fd1be', fontWeight: 700, letterSpacing: '0.1em' }}>READING NOW</div>
               <div style={{ fontSize: 22, fontWeight: 800 }}>{liveProject.name}</div>
               <div style={{ opacity: 0.75, fontSize: 14 }}>
                 The {live.kind === 'laptop' ? 'laptop' : 'cloud'} reader has done {live.progress.done} of {live.progress.total} paragraphs · {isWarmingUp(live) ? (live.kind === 'laptop' ? 'loading the model…' : 'starting…') : eta(live) || 'working out time left…'}
