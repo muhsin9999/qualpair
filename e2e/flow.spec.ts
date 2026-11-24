@@ -10,7 +10,7 @@ async function shot(page: import('@playwright/test').Page, name: string) {
  * The real readers are covered by manual checks in Chrome with Gemini Nano.
  */
 test('sample study: import → sample → both readers → access copies → agreement → review → report', async ({ page }) => {
-  await page.goto('/?practice');
+  await page.goto('/studies?practice');
   await page.getByRole('button', { name: /Try the sample study/ }).click();
   await expect(page.getByRole('heading', { name: 'UK healthcare study (sample)' })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('Practice readers on (no AI)')).toBeVisible();
@@ -89,6 +89,6 @@ test('sample study: import → sample → both readers → access copies → agr
 
   await page.getByRole('link', { name: 'Overview' }).click();
   await shot(page, '12-overview-done');
-  await page.goto('/');
+  await page.goto('/studies');
   await shot(page, '00-projects');
 });

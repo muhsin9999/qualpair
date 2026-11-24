@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test';
  */
 test('real cloud reader codes approved access copies', async ({ page }) => {
   page.on('console', (m) => { if (m.type() === 'error') console.log('console:', m.text().slice(0, 300)); });
-  await page.goto('/');
+  await page.goto('/studies');
   await page.evaluate(() => localStorage.removeItem('qualcheck.practiceReaders'));
   await page.reload();
   await page.getByRole('button', { name: /Try the sample study/ }).click();

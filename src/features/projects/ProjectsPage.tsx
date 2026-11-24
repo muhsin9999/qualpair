@@ -86,9 +86,9 @@ export function ProjectsPage() {
 
   return (
     <div style={{ minHeight: '100%', padding: '18px 40px 40px' }}>
-      <div className="row" style={{ fontWeight: 800 }}>
+      <Link to="/" className="row" style={{ fontWeight: 800, textDecoration: 'none', color: 'var(--ink)', width: 'fit-content' }}>
         <span className="logo" style={{ width: 26, height: 26 }}><BookOpenCheck size={15} /></span> QualCheck
-      </div>
+      </Link>
       <div className="center-col stack" style={{ gap: 22, marginTop: 28 }}>
         <div className="row">
           <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', margin: 0, flex: 1 }}>Your studies</h1>

@@ -102,7 +102,7 @@ export default function EvalPage() {
   return (
     <div className="main" style={{ minHeight: '100%' }}>
       <PageHead title="Evaluation" sub="Each reader against a published expert coding: Le Foll (2025), interviews with linguists about open science, CC BY-SA 4.0">
-        <Link className="btn ghost" to="/">Back to studies</Link>
+        <Link className="btn ghost" to="/studies">Your studies</Link>
       </PageHead>
       <div className="work col" style={{ maxWidth: 1000 }}>
         {SAVED.map((r) => <ResultTable key={`${r.reader}-${r.date}`} r={r} note={`measured ${new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`} />)}

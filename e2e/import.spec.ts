@@ -3,7 +3,7 @@ import path from 'node:path';
 
 /** Real .docx import (Zhang 2026, CC BY 4.0) and pasted text with speaker labels. */
 test('imports a .docx transcript and pasted text', async ({ page }) => {
-  await page.goto('/?practice');
+  await page.goto('/studies?practice');
   page.once('dialog', (d) => d.accept('Import test'));
   await page.getByRole('button', { name: 'New study' }).click();
   await expect(page.getByRole('heading', { name: 'Interviews' })).toBeVisible();

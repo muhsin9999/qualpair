@@ -35,7 +35,7 @@ export function Nav() {
 
   return (
     <nav className="nav" aria-label="Study">
-      <Link to="/" className="brand">
+      <Link to="/studies" className="brand">
         <span className="logo"><BookOpenCheck size={13} /></span> QualCheck
       </Link>
       <div style={{ position: 'relative' }}>
@@ -54,7 +54,7 @@ export function Nav() {
                 {p.name}
               </button>
             ))}
-            <Link className="nav-item" to="/" onClick={() => setOpen(false)}>All studies…</Link>
+            <Link className="nav-item" to="/studies" onClick={() => setOpen(false)}>All studies…</Link>
           </div>
         )}
       </div>

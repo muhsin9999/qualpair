@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import { Nav } from './Nav';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ProjectsPage } from '../features/projects/ProjectsPage';
+import { LandingPage } from '../features/landing/LandingPage';
 
 const Overview = lazy(() => import('../features/overview/OverviewPage'));
 const Interviews = lazy(() => import('../features/interviews/InterviewsPage'));
@@ -37,7 +38,8 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<ProjectsPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/studies" element={<ProjectsPage />} />
         <Route path="/eval" element={<Suspense fallback={null}><Eval /></Suspense>} />
         <Route path="/p/:pid" element={<ProjectLayout />}>
           <Route index element={<Overview />} />
