@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowRight, Check, ChevronLeft, ChevronRight, Cloud, EyeOff, Laptop, Lock, Plus, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronLeft, ChevronRight, Cloud, EyeOff, Laptop, LoaderCircle, Lock, Plus, X } from 'lucide-react';
 import { db } from '../../db/db';
 import { usePid, useProject, useTranscripts } from '../../app/hooks';
 import { PageHead } from '../../app/ui';
@@ -92,6 +92,13 @@ export default function AccessPage() {
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   const [sel, setSel] = useState<{ text: string; x: number; y: number; below?: boolean } | null>(null);
+  const [checked, setChecked] = useState<{ tid: string; text: string } | null>(null);
+  const [laptopOk, setLaptopOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    const r = getDeviceReader();
+    if (r.isPractice) setLaptopOk(true);
+    else void r.status().then((st) => setLaptopOk(st === 'available' || st === 'downloadable' || st === 'downloading'));
+  }, []);
   const [newKind, setNewKind] = useState<Kind>('person');
   const closeSel = useCallback(() => setSel(null), []);
 
@@ -154,9 +161,15 @@ export default function AccessPage() {
   }
   async function askLaptop() {
     setBusy('Asking the laptop reader…');
+    setChecked(null);
+    setErr('');
     try {
-      await suggestWithLaptop(t!.id, getDeviceReader(), (d, n) => setBusy(`Laptop reader checking paragraph ${d} of ${n}…`));
+      const r = await suggestWithLaptop(t!.id, getDeviceReader(), (d, n) => setBusy(`Laptop reader checking paragraph ${d} of ${n}…`));
       setBusy('');
+      setChecked({
+        tid: t!.id,
+        text: r.found ? `Checked ${r.paragraphs} paragraphs. ${r.found} new word${r.found === 1 ? '' : 's'} to decide above.` : `Checked ${r.paragraphs} paragraphs. No new names or places found.`,
+      });
     } catch (e) {
       setBusy('');
       setErr(`The laptop reader could not check this interview: ${e instanceof Error ? e.message : e}`);
@@ -168,6 +181,11 @@ export default function AccessPage() {
       <PageHead title="Access copies" sub={`${t.title} · ${approvals?.size ?? 0} of ${transcripts.length} approved`}>
         <button className="btn small" disabled={ti === 0} onClick={() => setTi(ti - 1)} aria-label="Previous interview"><ChevronLeft size={16} /></button>
         <button className="btn small" disabled={ti >= transcripts.length - 1} onClick={() => setTi(ti + 1)} aria-label="Next interview"><ChevronRight size={16} /></button>
+        {approved ? (
+          <span className="head-ok"><Check size={16} /> Approved for the cloud reader</span>
+        ) : (
+          <button className="btn primary" disabled={pending.length > 0 || !!busy} title={pending.length ? 'Decide the laptop reader’s suggestions first' : undefined} onClick={approve}><Check size={16} /> Approve {t.title}</button>
+        )}
       </PageHead>
       {sel && <HidePopover sel={sel} onClose={closeSel} onHide={(k) => void addTerm(sel.text, k)} />}
       <div className="work pane">
@@ -176,7 +194,9 @@ export default function AccessPage() {
             <span className="row grow small" style={{ fontWeight: 700, color: 'var(--ink2)' }}><Lock size={15} /> Original <span className="spacer" /><span className="sel-hint"><EyeOff size={13} /> Select words to hide them</span></span>
             <span className="row grow small cloud" style={{ fontWeight: 700 }}><Cloud size={15} /> What the cloud reader sees</span>
           </div>
-          {visible.length === 0 && <div className="empty small">Nothing hidden in this interview yet. Show all paragraphs and select words to hide them.</div>}
+          {(!copies || (copies.size === 0 && (segs?.length ?? 0) > 0)) ? (
+            <div className="empty small">Preparing the access copy…</div>
+          ) : visible.length === 0 && <div className="empty small">Nothing hidden in this interview yet. Show all paragraphs and select words to hide them.</div>}
           {visible.map((s) => (
             <Fragment key={s.id}>
               <div className="row" style={{ alignItems: 'flex-start', gap: 32, padding: '14px 0', borderBottom: '1px solid var(--rule)' }}>
@@ -229,19 +249,20 @@ export default function AccessPage() {
                 <button className="btn small primary" onClick={() => decideTerm(t.id, g.r.original, 'hidden')}>Hide</button>
               </div>
             ))}
-            {!pending.length && <span className="small faint">{busy || 'Ask the laptop reader to look for names and places the rules missed. It runs on this computer.'}</span>}
-            {!busy && <button className="btn small" style={{ alignSelf: 'flex-start' }} onClick={askLaptop}>Check this interview</button>}
+            {pending.length > 0 && <span className="tiny attn">Decide each one before approving.</span>}
+            {laptopOk === false ? (
+              <span className="small">The laptop reader isn’t available in this browser, so <strong>names and places are not found automatically</strong>. Select them in the original, or type them under Always hide.</span>
+            ) : (
+              <>
+                {!pending.length && !busy && !(checked && checked.tid === t.id) && <span className="small faint">The rules above don’t know people’s names. Ask the laptop reader to look for names and places. It runs on this computer.</span>}
+                {busy && <span className="small laptop row" style={{ gap: 8 }} aria-live="polite"><LoaderCircle size={14} className="spin" /> {busy}</span>}
+                {checked && checked.tid === t.id && !busy && <span className="small laptop row" style={{ gap: 8 }} role="status"><Check size={14} /> {checked.text}</span>}
+                {!busy && <button className="btn small" style={{ alignSelf: 'flex-start' }} onClick={askLaptop}>{checked && checked.tid === t.id ? 'Check again' : 'Check this interview'}</button>}
+              </>
+            )}
           </div>
 
           {err && <div className="notice">{err}</div>}
-          <div className="pin-bottom stack" style={{ gap: 6 }}>
-            {approved ? (
-              <div className="notice neutral row"><Check size={16} /> Approved. The cloud reader may read this copy.</div>
-            ) : (
-              <button className="btn primary" disabled={pending.length > 0} onClick={approve}><Check size={16} /> Approve {t.title}</button>
-            )}
-            {pending.length > 0 && <span className="tiny faint">Decide the suggestions above before approving.</span>}
-          </div>
         </div>
       </div>
     </>

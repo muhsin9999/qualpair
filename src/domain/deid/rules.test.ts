@@ -27,6 +27,14 @@ describe('findRedactions', () => {
     const r = findRedactions('It was on 12/03/2024 and again on 3rd March 2025.', settings);
     expect(r.filter((x) => x.kind === 'date')).toHaveLength(2);
   });
+
+  it('finds short local phone numbers and spoken dates', () => {
+    const text = 'Ring 555-0148 before the 8th of November, or on March 14, 2025. We met in 2019-2020 for 15 minutes.';
+    const r = findRedactions(text, settings);
+    expect(r.filter((x) => x.kind === 'phone').map((x) => x.original)).toContain('555-0148');
+    expect(r.filter((x) => x.kind === 'date').map((x) => x.original)).toEqual(['8th of November', 'March 14, 2025']);
+    expect(r.some((x) => x.original === '15')).toBe(false);
+  });
 });
 
 describe('mergeSuggestions and approval', () => {

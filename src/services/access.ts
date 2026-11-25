@@ -43,23 +43,28 @@ export async function rebuildAllAccessCopies(projectId: string) {
 }
 
 /** Ask the laptop reader (on device) for names and places the rules missed. */
-export async function suggestWithLaptop(transcriptId: string, reader: DeviceReader, onProgress?: (done: number, total: number) => void) {
+/** Ask the laptop reader for names and places in every paragraph. Returns how many new words it suggested. */
+export async function suggestWithLaptop(transcriptId: string, reader: DeviceReader, onProgress?: (done: number, total: number) => void): Promise<{ paragraphs: number; found: number }> {
   const t = await db.transcripts.get(transcriptId);
-  if (!t) return;
+  if (!t) return { paragraphs: 0, found: 0 };
   let copies = await db.accessCopies.where('transcriptId').equals(transcriptId).toArray();
   if (!copies.length) copies = await buildAccessCopies(transcriptId);
   const segs = new Map((await db.segments.where('transcriptId').equals(transcriptId).toArray()).map((s) => [s.id, s]));
   const log = ledgerSink(t.projectId);
   let done = 0;
+  let found = 0;
+  const fromLaptop = (rs: Redaction[]) => rs.filter((r) => r.source === 'laptop-reader').length;
   for (const c of copies) {
     const s = segs.get(c.segmentId);
     if (!s) continue;
     const items = await reader.suggestDeid(s.text, log);
     const redactions = mergeSuggestions(s.text, c.redactions, items);
+    found += Math.max(0, fromLaptop(redactions) - fromLaptop(c.redactions));
     await db.accessCopies.put({ ...c, redactions, redactedText: applyRedactions(s.text, redactions) });
     onProgress?.(++done, copies.length);
   }
   await db.approvals.delete(transcriptId);
+  return { paragraphs: done, found };
 }
 
 export async function setRedactionStatus(segmentId: string, start: number, status: Redaction['status']) {

@@ -60,8 +60,11 @@ function findTerm(text: string, term: string): Array<[number, number]> {
 }
 
 const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
-const PHONE = /(?<!\w)(?:\+?\d[\d ()-]{7,}\d)(?!\w)/g;
-const DATE = /\b(?:\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2}(?:st|nd|rd|th)? (?:January|February|March|April|May|June|July|August|September|October|November|December)(?: \d{4})?)\b/gi;
+/** International and long numbers, plus short local numbers written 555-0148 or 555 0148. */
+const PHONE = /(?<!\w)(?:\+?\d[\d ()-]{7,}\d|\d{3}[- ]\d{4})(?![\w-])/g;
+const MONTH = '(?:January|February|March|April|May|June|July|August|September|October|November|December)';
+/** 03/11/2024, 14 March (2024), 8th of November, March 14(th)(, 2024). */
+const DATE = new RegExp(`\\b(?:\\d{1,2}[/.-]\\d{1,2}[/.-]\\d{2,4}|\\d{1,2}(?:st|nd|rd|th)?(?: of)? ${MONTH}(?:,? \\d{4})?|${MONTH} \\d{1,2}(?:st|nd|rd|th)?(?:,? \\d{4})?)\\b`, 'gi');
 
 /** Find everything the rules would hide in one segment. Suggestions are merged in separately. */
 export function findRedactions(text: string, settings: DeidSettings, placeLabels: Map<string, string> = new Map()): Redaction[] {
