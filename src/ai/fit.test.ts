@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { codeFitting, groups, isTooLarge, type FitState } from './fit';
 import { PROMPT_VERSIONS } from './prompts';
+import { cloudErrorMessage } from './cloud';
 import type { Code } from '../types';
 
 const code = (i: number): Code => ({
@@ -62,5 +63,19 @@ describe('fitting the laptop reader prompt to the model limit', () => {
   it('passes other errors straight through', async () => {
     const boom = async () => { throw new Error('model crashed'); };
     await expect(codeFitting(codes, 'P01', text, { level: 0 }, boom)).rejects.toThrow('model crashed');
+  });
+});
+
+describe('cloud reader errors in plain language', () => {
+  it('explains App Check failures without a raw URL', () => {
+    const m = cloudErrorMessage(new Error('FirebaseError: AI: HTTP 401 https://firebasevertexai.googleapis.com/v1beta/... Firebase App Check token is invalid.'));
+    expect(m).toMatch(/App Check/);
+    expect(m).not.toMatch(/https?:/);
+  });
+  it('explains rate limits', () => {
+    expect(cloudErrorMessage(new Error('429 RESOURCE_EXHAUSTED'))).toMatch(/busy/);
+  });
+  it('drops URLs from unknown errors', () => {
+    expect(cloudErrorMessage(new Error('weird failure at https://example.com/x'))).not.toMatch(/https?:/);
   });
 });

@@ -100,7 +100,7 @@ export default function CloudPage() {
               </>
             )}
             {approvedTs.length < transcripts.length && <span className="tiny faint">Only approved copies are sent. {transcripts.length - approvedTs.length} still need{transcripts.length - approvedTs.length === 1 ? 's' : ''} approval.</span>}
-            {run?.error && <div className="notice small">The cloud reader stopped: {run.error}</div>}
+            {run?.error && <div className="notice small" role="alert"><strong>The cloud reader stopped.</strong> {run.error}</div>}
           </div>
         </div>
       </div>

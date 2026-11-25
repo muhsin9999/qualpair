@@ -19,6 +19,18 @@ import type { CloudReader, CodeResult, DefinitionSuggestion, LedgerSink } from '
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Turn SDK and HTTP errors into a sentence a researcher can act on. The raw error stays in AI activity. */
+export function cloudErrorMessage(e: unknown): string {
+  const m = String(e);
+  if ((typeof navigator !== 'undefined' && !navigator.onLine) || /Failed to fetch|NetworkError|ERR_INTERNET|offline/i.test(m))
+    return 'There is no internet connection. Press Resume when you are back online; the laptop reader keeps working offline.';
+  if (/app.?check|attestation|recaptcha|\b401\b|\b403\b|UNAUTHENTICATED|PERMISSION_DENIED/i.test(m))
+    return 'Firebase App Check could not confirm this is a normal browser session, so the cloud reader was blocked (this protects the free quota). Reload the page and try again. Automated or heavily privacy-hardened browsers can be blocked; in everyday Chrome this normally works.';
+  if (/429|RESOURCE_EXHAUSTED|quota/i.test(m)) return 'The cloud reader is busy right now. Wait a minute, then press Resume. Finished paragraphs are kept.';
+  if (/503|UNAVAILABLE|overloaded/i.test(m)) return 'The cloud model is temporarily unavailable. Try again in a few minutes. Finished paragraphs are kept.';
+  return `Something went wrong: ${m.replace(/https?:\/\/\S+/g, '').slice(0, 160)}`;
+}
+
 /**
  * Gemini through Firebase AI Logic in ONLY_IN_CLOUD mode.
  * `codeBatch` only accepts ApprovedAccessSegment, whose text type can only come from approveForCloud().
@@ -57,7 +69,7 @@ export class FirebaseCloudReader implements CloudReader {
           continue;
         }
         log({ task, where: 'in_cloud', model, promptVersion, segmentCount, bytesSent: new Blob([prompt]).size, payloadPreview: prompt, ok: false, error: msg.slice(0, 300) });
-        throw e;
+        throw new Error(cloudErrorMessage(e), { cause: e });
       }
     }
     throw lastErr;

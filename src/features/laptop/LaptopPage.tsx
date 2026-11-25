@@ -8,22 +8,23 @@ import { currentElapsed, eta, formatElapsed, isRunning, isWarmingUp, useRuns } f
 import { getDeviceReader, setPracticeMode } from '../../ai/registry';
 import type { DeviceStatus } from '../../ai/readers';
 
-function ModelStatus({ onReady }: { onReady: () => void }) {
+function ModelStatus({ status, onStatus }: { status: DeviceStatus | null; onStatus: (s: DeviceStatus) => void }) {
   const reader = getDeviceReader();
-  const [status, setStatus] = useState<DeviceStatus | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  const [justReady, setJustReady] = useState(false);
   const [err, setErr] = useState('');
-  useEffect(() => {
-    void reader.status().then(setStatus);
-  }, [reader]);
-  if (!status || status === 'available') return null;
+  if (!status || reader.isPractice) return null;
+  if (status === 'available')
+    return justReady ? (
+      <div className="notice ok row" style={{ gap: 10 }} role="status"><CheckCircle2 size={18} /> Gemini Nano is ready on this computer. Press Start to code your interviews.</div>
+    ) : null;
   async function download() {
     setErr('');
     setProgress(0);
     try {
       await reader.warmUp((f) => setProgress(f));
-      setStatus('available');
-      onReady();
+      setJustReady(true);
+      onStatus('available');
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
       setProgress(null);
@@ -42,14 +43,22 @@ function ModelStatus({ onReady }: { onReady: () => void }) {
         <button className="btn small" style={{ alignSelf: 'flex-start' }} onClick={() => { setPracticeMode(true); location.reload(); }}>Use practice readers (keyword rules, no AI)</button>
       </div>
     );
+  const busy = progress !== null;
   return (
-    <div className="card pad stack">
-      <strong>Download the laptop reader</strong>
-      <span className="small muted">Chrome downloads Gemini Nano once (about 2 GB, needs about 22 GB free disk). After that it works offline.</span>
-      {progress !== null ? <><Track value={progress * 100} total={100} kind="laptop" /><span className="tiny faint">{Math.round(progress * 100)}%</span></> : (
-        <button className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={download}><Download size={16} /> Download (about 2 GB)</button>
+    <div className="card pad stack" style={{ gap: 10 }}>
+      <strong>Step 1: download the laptop reader</strong>
+      <span className="small muted">Chrome downloads Gemini Nano once (about 2 GB; needs about 22 GB free disk). After that it works offline. You can keep using the rest of the app while it downloads.</span>
+      {busy ? (
+        <>
+          <Track value={progress * 100} total={progress > 0 ? 100 : 0} kind="laptop" busy={progress === 0} />
+          <span className="small laptop row" style={{ gap: 8 }} aria-live="polite">
+            <LoaderCircle size={14} className="spin" /> {progress > 0 ? `Downloading… ${Math.round(progress * 100)}%` : 'Starting the download… this can take a few minutes.'}
+          </span>
+        </>
+      ) : (
+        <button className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={download}><Download size={16} /> {status === 'downloading' ? 'Continue the download' : 'Download (about 2 GB)'}</button>
       )}
-      {err && <span className="small attn">{err}</span>}
+      {err && <span className="small attn">The download stopped: {err}</span>}
     </div>
   );
 }
@@ -64,6 +73,11 @@ export default function LaptopPage() {
   const stop = useRuns((r) => r.stop);
   const [, force] = useState(0);
   const reader = getDeviceReader();
+  const [status, setStatus] = useState<DeviceStatus | null>(null);
+  useEffect(() => {
+    void reader.status().then(setStatus);
+  }, [reader]);
+  const canStart = reader.isPractice || status === 'available';
   const running = isRunning(run) && run?.pid === pid;
   useEffect(() => {
     if (!running) return;
@@ -77,8 +91,8 @@ export default function LaptopPage() {
   const tIndex = currentTranscript && transcripts ? transcripts.indexOf(currentTranscript) + 1 : 0;
   const warming = running && isWarmingUp(run);
   const elapsed = formatElapsed(currentElapsed(run));
-  let title = 'Ready to code';
-  let sub = 'Each finished paragraph is saved, so you can pause any time.';
+  let title = canStart ? 'Ready to code' : status === null ? 'Checking this computer…' : 'Waiting for the model';
+  let sub = canStart ? 'Each finished paragraph is saved, so you can pause any time.' : status === 'downloadable' || status === 'downloading' ? 'Download Gemini Nano above first. Then press Start.' : 'The laptop reader needs Gemini Nano in Chrome.';
   if (done >= total && total) title = 'All paragraphs coded';
   else if (warming) {
     title = reader.isPractice ? 'Starting' : 'Loading Gemini Nano';
@@ -92,7 +106,7 @@ export default function LaptopPage() {
     <>
       <PageHead title="Laptop reader" sub={reader.isPractice ? reader.modelName : 'Gemini Nano, running on this computer'} />
       <div className="work col" style={{ maxWidth: 980 }}>
-        <ModelStatus onReady={() => force((x) => x + 1)} />
+        <ModelStatus status={status} onStatus={setStatus} />
         {!book ? (
           <div className="card empty">Write your codebook first.</div>
         ) : (
@@ -110,7 +124,7 @@ export default function LaptopPage() {
               {running ? (
                 <button className="btn" onClick={() => stop('laptop')}><Pause size={16} /> Pause</button>
               ) : done < total ? (
-                <button className="btn primary" onClick={() => start(pid, 'laptop')}><Play size={16} /> {done ? 'Resume' : 'Start'}</button>
+                <button className="btn primary" disabled={!canStart} onClick={() => start(pid, 'laptop')}><Play size={16} /> {done ? 'Resume' : 'Start'}</button>
               ) : null}
             </div>
             <div className="row" style={{ alignItems: 'baseline' }}>
@@ -119,7 +133,7 @@ export default function LaptopPage() {
               {running && <strong className="laptop">{warming ? '' : eta(run) || 'working out time left…'}</strong>}
             </div>
             {warming ? <Track value={0} total={0} kind="laptop" busy /> : <Track value={done} total={total} kind="laptop" />}
-            {run?.error && <div className="notice">The laptop reader stopped: {run.error}</div>}
+            {run?.error && <div className="notice" role="alert"><strong>The laptop reader stopped.</strong> {run.error}</div>}
           </div>
         )}
         {running && run?.last && (
