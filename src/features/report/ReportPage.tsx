@@ -209,7 +209,7 @@ export default function ReportPage() {
           { label: 'Study backup', hint: 'JSON, everything in this study', onSelect: () => void backup() },
         ]} />
         <button className="btn" onClick={word} disabled={!!busy}><FileText size={16} /> Word</button>
-        <button className="btn primary" onClick={printPdf}><Printer size={16} /> Export PDF</button>
+        <button className="btn primary" onClick={printPdf}><Printer size={16} /> Print / save as PDF</button>
       </PageHead>
       {busy && <div className="notice neutral" style={{ margin: '12px 32px 0' }}>{busy}</div>}
       <div className="editor">

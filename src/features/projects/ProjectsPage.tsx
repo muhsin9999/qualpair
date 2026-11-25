@@ -12,6 +12,7 @@ import { kappaBand } from '../../domain/stats/agreement';
 import type { Project } from '../../types';
 import { Logo } from '../../app/Logo';
 import { useInstall } from '../../app/install';
+import { NameDialog } from '../../app/NameDialog';
 
 type Stats = NonNullable<Awaited<ReturnType<typeof studyStats>>>;
 
@@ -114,14 +115,16 @@ export function ProjectsPage() {
   const { canInstall, install } = useInstall();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [naming, setNaming] = useState(false);
   const live = Object.values(runs).find((r) => isRunning(r));
   const liveProject = projects?.find((p) => p.id === live?.pid);
   const hasSample = projects?.some((p) => p.isSample);
 
-  async function newStudy() {
-    const name = prompt('Name this study');
-    if (!name?.trim()) return;
-    const p = await createProject({ name: name.trim() });
+  const newStudy = () => setNaming(true);
+  async function create(name: string | null) {
+    setNaming(false);
+    if (!name) return;
+    const p = await createProject({ name });
     navigate(`/p/${p.id}/interviews`);
   }
   async function sample() {
@@ -137,6 +140,8 @@ export function ProjectsPage() {
 
   return (
     <div className="st">
+      <NameDialog open={naming} title="New study" label="Study name" placeholder="e.g. Nurses’ experiences of night shifts" confirm="Create study"
+        hint="Next you’ll add interview transcripts. Everything stays in this browser." onDone={(n) => void create(n)} />
       <header className="st-top">
         <Link to="/" className="row" style={{ textDecoration: 'none', color: 'var(--ink)' }}><Logo size={28} fontSize={18} /></Link>
         <span className="spacer" />

@@ -22,7 +22,10 @@ export default function ReviewPage() {
   const [cursor, setCursor] = useState(0);
   const [memo, setMemo] = useState('');
   const [memoOpen, setMemoOpen] = useState(false);
-  const open = useMemo(() => all?.filter((d) => !d.decision) ?? [], [all]);
+  // Decisions show at once; the full list (a slower query) catches up a moment later.
+  const [justDecided, setJustDecided] = useState<Set<string>>(() => new Set());
+  const keyOf = (d: Disagreement) => `${d.segment.id}:${d.code.id}`;
+  const open = useMemo(() => all?.filter((d) => !d.decision && !justDecided.has(`${d.segment.id}:${d.code.id}`)) ?? [], [all, justDecided]);
   const item: Disagreement | undefined = open[Math.min(cursor, Math.max(0, open.length - 1))];
   const context = useLiveQuery(async () => {
     if (!item) return [];
@@ -33,11 +36,19 @@ export default function ReviewPage() {
   const act = useCallback(
     async (outcome: DecisionOutcome) => {
       if (!item) return;
-      await decide(pid, item.segment.id, item.code.id, outcome, memo);
+      const key = keyOf(item);
+      if (justDecided.has(key)) return;
+      setJustDecided((s) => new Set(s).add(key));
       setMemo('');
       setMemoOpen(false);
+      try {
+        await decide(pid, item.segment.id, item.code.id, outcome, memo);
+      } catch (e) {
+        setJustDecided((s) => { const n = new Set(s); n.delete(key); return n; });
+        throw e;
+      }
     },
-    [item, pid, memo],
+    [item, pid, memo, justDecided],
   );
 
   useEffect(() => {

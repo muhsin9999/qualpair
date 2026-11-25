@@ -127,7 +127,7 @@ export default function InterviewsPage() {
   const pmap = new Map(participants?.map((p) => [p.id, p]));
   return (
     <>
-      <PageHead title="Interviews" sub={transcripts ? `${transcripts.length} transcripts in this study` : undefined}>
+      <PageHead title="Interviews" sub={transcripts ? `${transcripts.length} interview${transcripts.length === 1 ? '' : 's'} in this study` : undefined}>
         <button className="btn" onClick={() => setPaste((v) => !v)}>Paste text</button>
         <button className="btn primary" onClick={() => fileRef.current?.click()}><Upload size={16} /> Import transcripts</button>
         <input ref={fileRef} type="file" multiple accept=".txt,.docx,.vtt,.md" hidden onChange={(e) => onFiles(e.target.files)} />

@@ -28,7 +28,7 @@ export default function OverviewPage() {
   let next: { text: string; to: string; cta: string };
   if (!s.interviews) next = { text: 'Next: import your interview transcripts', to: 'interviews', cta: 'Import' };
   else if (!s.codes) next = { text: 'Next: write or draft your codebook', to: 'codebook', cta: 'Open codebook' };
-  else if (!s.sampleSize || s.sampleDone < s.sampleSize) next = { text: `Next: code your sample yourself (${s.sampleDone} of ${s.sampleSize || '…'} paragraphs done)`, to: 'sample', cta: 'Code your sample' };
+  else if (!s.sampleSize || s.sampleDone < s.sampleSize) next = { text: s.sampleSize ? `Next: code your sample yourself (${s.sampleDone} of ${s.sampleSize} paragraphs done)` : 'Next: draw a random sample and code it yourself', to: 'sample', cta: 'Code your sample' };
   else if (s.laptopDone < s.codable) next = { text: `Next: let the laptop reader code ${s.codable - s.laptopDone} paragraphs`, to: 'laptop', cta: 'Open laptop reader' };
   else if (s.approved < s.interviews) next = { text: `Next: approve ${s.interviews - s.approved} access cop${s.interviews - s.approved === 1 ? 'y' : 'ies'}`, to: 'access', cta: 'Review access copies' };
   else if (s.cloudDone < s.codable) next = { text: 'Next: send the approved access copies to the cloud reader', to: 'cloud', cta: 'Open cloud reader' };

@@ -1,12 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, Lock } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ArrowDown, ArrowUp, BookOpen, Check, Lock } from 'lucide-react';
 import { db } from '../../db/db';
 import { codeColor, paraNo, usePid, useCodebook, useProject } from '../../app/hooks';
 import { PageHead, revealIn, Track } from '../../app/ui';
 import { Select } from '../../app/Select';
 import { ensureSample, getSample, resetSample, saveSegmentCoding } from '../../services/coding';
-import type { Segment } from '../../types';
+import type { Code, Segment } from '../../types';
 
 function Setup({ pid }: { pid: string }) {
   const project = useProject(pid);
@@ -34,6 +35,22 @@ function Setup({ pid }: { pid: string }) {
   );
 }
 
+/** The codebook entry for the code under the pointer, shown beside it, so you never have to leave the page to check a rule. */
+function CodeDefinition({ code, at }: { code: Code; at: { top: number; right: number } }) {
+  const rows: Array<[string, string]> = [['Use when', code.whenToUse], ['Don’t use when', code.whenNotToUse], ['Example', code.example]];
+  const top = Math.max(12, Math.min(at.top - 14, window.innerHeight - 340));
+  return createPortal(
+    <div className="def-card" role="tooltip" style={{ top, right: at.right }}>
+      <div className="row" style={{ gap: 8 }}><span className="cbar" style={{ background: codeColor(code) }} /><strong>{code.name}</strong></div>
+      {code.definition.trim() && <p>{code.definition}</p>}
+      {rows.filter(([, v]) => v.trim()).map(([k, v]) => (
+        <div key={k}><span className="def-k">{k}</span><p>{k === 'Example' ? `“${v.replace(/^["“]|["”]$/g, '')}”` : v}</p></div>
+      ))}
+    </div>,
+    document.body,
+  );
+}
+
 export default function SamplePage() {
   const pid = usePid();
   const project = useProject(pid);
@@ -58,6 +75,12 @@ export default function SamplePage() {
   const titles = useLiveQuery(async () => new Map((await db.transcripts.where('projectId').equals(pid).toArray()).map((t) => [t.id, t.title])), [pid]);
   const [pos, setPos] = useState<number | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [peek, setPeek] = useState<{ id: string; top: number; right: number } | null>(null);
+  const showDef = (id: string, el: Element | null) => {
+    const r = el?.closest('.card')?.getBoundingClientRect();
+    const row = el?.getBoundingClientRect();
+    if (r && row) setPeek({ id, top: row.top, right: window.innerWidth - r.left + 12 });
+  };
 
   const firstUndone = useMemo(() => (segs && human ? Math.max(0, segs.findIndex((s) => !human.has(s.id))) : 0), [segs, human]);
   const idx = pos ?? firstUndone;
@@ -71,6 +94,7 @@ export default function SamplePage() {
   useEffect(() => {
     if (cur && human) setPicked(new Set(human.get(cur.id) ?? []));
   }, [cur?.id, human]);
+  useEffect(() => setPeek(null), [cur?.id]);
 
   const next = useCallback(async () => {
     if (!cur || !segs) return;
@@ -85,6 +109,7 @@ export default function SamplePage() {
       const n = Number(e.key);
       if (n >= 1 && n <= 9 && book.codes[n - 1]) {
         const id = book.codes[n - 1]!.id;
+        showDef(id, document.querySelector(`[data-code="${id}"]`));
         setPicked((p) => {
           const x = new Set(p);
           if (x.has(id)) x.delete(id);
@@ -144,12 +169,13 @@ export default function SamplePage() {
           </div>
           {allDone && <div className="notice neutral row"><Check size={16} /> Sample done. The readers can now be scored against you.</div>}
           {cur && (
-            <div className="card lift" style={{ padding: '14px 10px' }}>
-              <strong style={{ display: 'block', padding: '0 8px 10px', fontSize: 16 }}>Which codes apply to paragraph {paraNo(cur.index)}?</strong>
+            <div className="card lift" style={{ padding: '14px 10px' }} onMouseLeave={() => setPeek(null)}>
+              <strong style={{ display: 'block', padding: '0 8px 2px', fontSize: 16 }}>Which codes apply to paragraph {paraNo(cur.index)}?</strong>
+              <span className="tiny faint row" style={{ padding: '0 8px 10px', gap: 6 }}><BookOpen size={13} /> Point at a code to see its definition</span>
               {book.codes.map((c, i) => {
                 const on = picked.has(c.id);
                 return (
-                  <button key={c.id} className="row" onClick={() => setPicked((p) => { const x = new Set(p); if (on) x.delete(c.id); else x.add(c.id); return x; })}
+                  <button key={c.id} className="row" data-code={c.id} onMouseEnter={(e) => showDef(c.id, e.currentTarget)} onFocus={(e) => showDef(c.id, e.currentTarget)} onBlur={() => setPeek(null)} onClick={() => setPicked((p) => { const x = new Set(p); if (on) x.delete(c.id); else x.add(c.id); return x; })}
                     style={{ width: '100%', border: 0, background: on ? 'var(--sel)' : 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', textAlign: 'left' }}>
                     <span style={{ width: 18, height: 18, borderRadius: 4, border: on ? 'none' : '1.5px solid var(--ink3)', background: on ? 'var(--ink)' : 'var(--page)', display: 'grid', placeItems: 'center', flex: 'none' }}>{on && <Check size={12} color="#fff" />}</span>
                     <span className="cbar" style={{ background: codeColor(c) }} />
@@ -164,6 +190,7 @@ export default function SamplePage() {
               </div>
             </div>
           )}
+          {cur && peek && book.codes.some((c) => c.id === peek.id) && <CodeDefinition code={book.codes.find((c) => c.id === peek.id)!} at={peek} />}
         </div>
       </div>
     </>
