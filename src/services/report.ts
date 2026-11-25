@@ -4,7 +4,7 @@ import type { Code, LedgerEntry, Participant, Project, ReportSettings, Transcrip
 import { codableSegments, currentCodebook } from './core';
 import { getSample } from './coding';
 import { agreementByCode, finalCodes, type CodeAgreement } from './results';
-import { CLOUD_MODEL } from '../ai/cloud';
+import { cloudModel } from '../firebase/config';
 
 export const SECTIONS = [
   { id: 'cover', label: 'Title and summary' },
@@ -50,7 +50,7 @@ export interface ReportData {
   undecided: number;
   decisions: number;
   matrix: Map<string, Map<string, number>>;
-  ledger: { device: number; cloud: number; cloudKB: number; first?: number; last?: number; models: string[] };
+  ledger: { device: number; cloud: number; cloudKB: number; first?: number; last?: number; models: string[]; cloudModels: string[] };
   practice: boolean;
 }
 
@@ -160,6 +160,7 @@ export async function buildReport(projectId: string): Promise<ReportData | undef
       first: ledgerRows.length ? Math.min(...ledgerRows.map((r) => r.at)) : undefined,
       last: ledgerRows.length ? Math.max(...ledgerRows.map((r) => r.at)) : undefined,
       models: [...new Set(ledgerRows.map((r) => r.model))],
+      cloudModels: [...new Set(cl.filter((r) => r.ok && r.task === 'second-read').map((r) => r.model))],
     },
     practice: ledgerRows.some((r) => r.promptVersion === 'practice'),
   };
@@ -194,7 +195,7 @@ export function methodText(d: ReportData): string {
     `Transcripts of ${N} interview${N === 1 ? '' : 's'} were divided into ${n(d.totalParagraphs)} participant paragraphs (one paragraph per speaker turn; long turns were split at sentence boundaries). Interviewer turns were kept for context but not coded.`,
     `The researcher wrote a codebook of ${d.codes.length} codes, each with a definition, inclusion and exclusion criteria, and an example.`,
     `The researcher first coded a random sample of ${d.sampleSize} paragraphs (${share}%). The pass mark for agreement (Cohen’s κ ≥ ${d.threshold.toFixed(2)}) was fixed before any AI coding.`,
-    `Two AI readers then coded every paragraph independently, without seeing each other’s or the researcher’s codes. The laptop reader (Gemini Nano, running on the researcher’s computer in Chrome through Firebase AI Logic in on-device-only mode) read the original transcripts. The cloud reader (${CLOUD_MODEL}, through Firebase AI Logic) read only de-identified access copies that the researcher had reviewed and approved.`,
+    `Two AI readers then coded every paragraph independently, without seeing each other’s or the researcher’s codes. The laptop reader (Gemini Nano, running on the researcher’s computer in Chrome through Firebase AI Logic in on-device-only mode) read the original transcripts. The cloud reader (${(d.ledger.cloudModels.length ? d.ledger.cloudModels : [cloudModel()]).join(', ')}, through Firebase AI Logic) read only de-identified access copies that the researcher had reviewed and approved.`,
     `Agreement of each reader with the researcher was measured per code with Cohen’s κ on the researcher’s sample. Codes below the pass mark were held back from the findings. Where the two readers disagreed, the researcher decided each case (${n(d.decisions)} decisions, each logged with an optional memo).${d.undecided ? ` ${n(d.undecided)} disagreements were still undecided and are not counted.` : ''}`,
     `AI coding was used to support, not replace, the researcher’s interpretation. All themes and quotations were reviewed by the researcher.`,
   ].join(' ');

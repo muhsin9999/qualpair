@@ -1,5 +1,6 @@
 import { getGenerativeModel, InferenceMode } from 'firebase/ai';
 import { getFirebaseAI } from '../firebase/init';
+import { cloudModel } from '../firebase/config';
 import type { ApprovedAccessSegment, Code } from '../types';
 import {
   checkEvidence,
@@ -15,7 +16,6 @@ import {
 } from './prompts';
 import type { CloudReader, CodeResult, DefinitionSuggestion, LedgerSink } from './readers';
 
-export const CLOUD_MODEL = 'gemini-3.5-flash-lite';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -25,14 +25,17 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 export class FirebaseCloudReader implements CloudReader {
   readonly kind = 'cloud' as const;
-  readonly modelName = CLOUD_MODEL;
+  /** Set in Firebase Remote Config (`cloud_model`), with a built-in default. */
+  get modelName() {
+    return cloudModel();
+  }
   readonly isPractice = false;
 
-  private model(schema: object) {
+  private model(model: string, schema: object) {
     return getGenerativeModel(getFirebaseAI(), {
       mode: InferenceMode.ONLY_IN_CLOUD,
       inCloudParams: {
-        model: CLOUD_MODEL,
+        model,
         generationConfig: { temperature: 0, responseMimeType: 'application/json', responseJsonSchema: schema as Record<string, unknown> },
       },
     });
@@ -40,10 +43,11 @@ export class FirebaseCloudReader implements CloudReader {
 
   private async call<T>(task: Parameters<LedgerSink>[0]['task'], promptVersion: string, prompt: string, schema: object, segmentCount: number, log: LedgerSink): Promise<T> {
     let lastErr: unknown;
+    const model = cloudModel();
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        const res = await this.model(schema).generateContent(prompt);
-        log({ task, where: 'in_cloud', model: CLOUD_MODEL, promptVersion, segmentCount, bytesSent: new Blob([prompt]).size, payloadPreview: prompt, ok: true });
+        const res = await this.model(model, schema).generateContent(prompt);
+        log({ task, where: 'in_cloud', model, promptVersion, segmentCount, bytesSent: new Blob([prompt]).size, payloadPreview: prompt, ok: true });
         return parseJson<T>(res.response.text());
       } catch (e) {
         lastErr = e;
@@ -52,7 +56,7 @@ export class FirebaseCloudReader implements CloudReader {
           await sleep(2000 * 2 ** attempt);
           continue;
         }
-        log({ task, where: 'in_cloud', model: CLOUD_MODEL, promptVersion, segmentCount, bytesSent: new Blob([prompt]).size, payloadPreview: prompt, ok: false, error: msg.slice(0, 300) });
+        log({ task, where: 'in_cloud', model, promptVersion, segmentCount, bytesSent: new Blob([prompt]).size, payloadPreview: prompt, ok: false, error: msg.slice(0, 300) });
         throw e;
       }
     }

@@ -23,7 +23,13 @@ declare global {
   var FIREBASE_APPCHECK_DEBUG_TOKEN: string | boolean | undefined;
 }
 
-/** Lazily initialise Firebase, App Check and AI Logic (Gemini Developer API backend). */
+/** The Firebase app, created on first use (no network until a product asks for it). */
+export function getFirebaseApp(): FirebaseApp {
+  if (!app) app = initializeApp(firebaseConfig);
+  return app;
+}
+
+/** Lazily initialise App Check and AI Logic (Gemini Developer API backend) on the shared app. */
 export function getFirebaseAI(): AI {
   if (ai) return ai;
   // The debug token is for local development only and must never reach a production build.
@@ -31,11 +37,11 @@ export function getFirebaseAI(): AI {
   if (debugToken && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
   }
-  app = initializeApp(firebaseConfig);
-  initializeAppCheck(app, {
+  const a = getFirebaseApp();
+  initializeAppCheck(a, {
     provider: new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
     isTokenAutoRefreshEnabled: true,
   });
-  ai = getAI(app, { backend: new GoogleAIBackend() });
+  ai = getAI(a, { backend: new GoogleAIBackend() });
   return ai;
 }

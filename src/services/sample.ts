@@ -23,7 +23,6 @@ export async function loadSampleProject(): Promise<string> {
     name: 'UK healthcare study (sample)',
     researchQuestion: 'How do international students in the UK decide when and where to seek healthcare?',
     isSample: true,
-    sampleShare: 0.15,
   });
   for (const [i, it] of items.entries()) {
     await importTranscript(p.id, `Interview ${String(i + 1).padStart(2, '0')}`, it.text, { participantLabel: `P${String(i + 1).padStart(2, '0')}` });

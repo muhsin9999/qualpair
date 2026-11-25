@@ -5,6 +5,7 @@ import { db } from '../../db/db';
 import { usePid, useCodebook, useTranscripts } from '../../app/hooks';
 import { studyStats } from '../../app/stats';
 import { PageHead, Track } from '../../app/ui';
+import { configSource } from '../../firebase/config';
 import { Select } from '../../app/Select';
 import { eta, isRunning, useRuns } from '../../app/runs';
 import { getCloudReader } from '../../ai/registry';
@@ -81,6 +82,7 @@ export default function CloudPage() {
               <dt>Paragraphs</dt><dd>{approvedParas.toLocaleString()}</dd>
               <dt>Words hidden</dt><dd>{(hiddenWords ?? 0).toLocaleString()}</dd>
               <dt>Code definitions</dt><dd>{book?.codes.length ?? 0}</dd>
+              {!reader.isPractice && <><dt>Model</dt><dd title={configSource() === 'remote' ? 'Set in Firebase Remote Config' : 'Built-in default'}>{reader.modelName}</dd></>}
             </dl>
             {!reader.isPractice && <CloudTermsNotice />}
             {running ? (

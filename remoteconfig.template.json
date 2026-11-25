@@ -1,0 +1,19 @@
+{
+  "parameters": {
+    "cloud_model": {
+      "defaultValue": { "value": "gemini-3.5-flash-lite" },
+      "description": "Model the cloud reader uses (Firebase AI Logic, ONLY_IN_CLOUD). Must start with gemini-.",
+      "valueType": "STRING"
+    },
+    "default_pass_mark": {
+      "defaultValue": { "value": "0.6" },
+      "description": "Pass mark (Cohen's kappa) suggested for new studies: 0.4, 0.6, 0.7 or 0.8.",
+      "valueType": "NUMBER"
+    },
+    "default_sample_share": {
+      "defaultValue": { "value": "0.15" },
+      "description": "Share of paragraphs a researcher codes by hand in a new study (0.10 to 0.25).",
+      "valueType": "NUMBER"
+    }
+  }
+}

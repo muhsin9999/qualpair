@@ -3,6 +3,7 @@ import { DEFAULT_DEID } from '../domain/deid/rules';
 import { guessInterviewers, parseTranscript, segmentTurns, vttToText } from '../domain/import/parse';
 import type { Code, CodebookVersion, LedgerEntry, Participant, Project, Segment, Transcript } from '../types';
 import type { LedgerSink } from '../ai/readers';
+import { defaultPassMark, defaultSampleShare } from '../firebase/config';
 
 export async function createProject(input: Partial<Project> & { name: string }): Promise<Project> {
   const now = Date.now();
@@ -10,8 +11,8 @@ export async function createProject(input: Partial<Project> & { name: string }):
     id: newId(),
     researchQuestion: '',
     method: 'codebook',
-    kappaThreshold: 0.6,
-    sampleShare: 0.15,
+    kappaThreshold: defaultPassMark(),
+    sampleShare: defaultSampleShare(),
     isSample: false,
     deid: structuredClone(DEFAULT_DEID),
     createdAt: now,
