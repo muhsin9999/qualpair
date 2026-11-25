@@ -105,8 +105,8 @@ export default function LaptopPage() {
   return (
     <>
       <PageHead title="Laptop reader" sub={reader.isPractice ? reader.modelName : 'Gemini Nano, running on this computer'} />
-      <div className="work col" style={{ maxWidth: 980 }}>
-        <ModelStatus status={status} onStatus={setStatus} />
+      <div className="work lp">
+        <div className="stack grow" style={{ gap: 16, minWidth: 0 }}>
         {!book ? (
           <div className="card empty">Write your codebook first.</div>
         ) : (
@@ -136,15 +136,6 @@ export default function LaptopPage() {
             {run?.error && <div className="notice" role="alert"><strong>The laptop reader stopped.</strong> {run.error}</div>}
           </div>
         )}
-        {running && run?.last && (
-          <div className="card pad stack">
-            <span className="label">Just coded</span>
-            <div style={{ font: 'italic 15.5px/1.55 var(--read)' }}>“{run.last.text}”</div>
-            <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
-              {run.last.codeIds.length ? run.last.codeIds.map((id) => { const c = book?.codes.find((x) => x.id === id); return c ? <CodeChip key={id} code={c} /> : null; }) : <span className="small faint">No codes</span>}
-            </div>
-          </div>
-        )}
         <div className="table-wrap">
           <table className="table">
             <tbody>
@@ -165,6 +156,30 @@ export default function LaptopPage() {
             </tbody>
           </table>
         </div>
+        </div>
+        <aside className="stack lp-side">
+          <ModelStatus status={status} onStatus={setStatus} />
+          {running && run?.last && (
+            <div className="card pad stack">
+              <span className="label">Just coded</span>
+              <div style={{ font: 'italic 15.5px/1.55 var(--read)' }}>“{run.last.text}”</div>
+              <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                {run.last.codeIds.length ? run.last.codeIds.map((id) => { const c = book?.codes.find((x) => x.id === id); return c ? <CodeChip key={id} code={c} /> : null; }) : <span className="small faint">No codes</span>}
+              </div>
+            </div>
+          )}
+          <div className="card pad stack" style={{ gap: 12 }}>
+            <strong>{reader.isPractice ? 'Practice reader' : 'What the laptop reader does'}</strong>
+            <dl className="facts">
+              {reader.isPractice ? (
+                <><dt>Reads</dt><dd>Original transcripts</dd><dt>Method</dt><dd>Keyword rules, no AI</dd><dt>Sends</dt><dd>Nothing</dd></>
+              ) : (
+                <><dt>Reads</dt><dd>Original transcripts</dd><dt>Runs</dt><dd>On this computer</dd><dt>Sends</dt><dd>Nothing</dd><dt>Works offline</dt><dd>Yes</dd></>
+              )}
+            </dl>
+            <span className="tiny faint">Each paragraph is coded on its own, with your code definitions. Its words never leave this browser.</span>
+          </div>
+        </aside>
       </div>
     </>
   );

@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDown, ArrowUp, BookOpen, Check, Lock } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookOpen, Check, Lock, Shuffle, UserRound } from 'lucide-react';
 import { db } from '../../db/db';
 import { codeColor, paraNo, usePid, useCodebook, useProject } from '../../app/hooks';
 import { PageHead, revealIn, Track } from '../../app/ui';
@@ -15,8 +15,8 @@ function Setup({ pid }: { pid: string }) {
   if (!project) return null;
   const n = Math.max(10, Math.round((codable ?? 0) * project.sampleShare));
   return (
-    <div className="work col" style={{ maxWidth: 720 }}>
-      <div className="paper stack" style={{ padding: 28, gap: 16 }}>
+    <div className="work lp">
+      <div className="paper stack grow" style={{ padding: 28, gap: 18, minWidth: 0 }}>
         <h2 style={{ margin: 0, fontSize: 20 }}>Set up your sample</h2>
         <p className="muted" style={{ margin: 0 }}>You code a random sample of paragraphs yourself. Both readers are then scored against your coding, code by code.</p>
         <label className="field">
@@ -31,6 +31,22 @@ function Setup({ pid }: { pid: string }) {
         <button className="btn primary" style={{ alignSelf: 'flex-start' }} disabled={!codable} onClick={() => ensureSample(pid)}>Draw my sample</button>
         {!codable && <span className="small faint">Import interviews first.</span>}
       </div>
+      <aside className="card pad stack lp-side" style={{ gap: 14 }}>
+        <strong>Why code a sample yourself?</strong>
+        {[
+          [UserRound, 'You are the yardstick', 'Each reader is scored against your coding, code by code, not against the other reader.'],
+          [Shuffle, 'Random, so it’s fair', 'Paragraphs are drawn at random from across all your interviews, so the score isn’t based on hand-picked examples.'],
+          [Lock, 'Pass mark fixed first', 'You set it before any reader runs, so the bar can’t move after you see results. Codes below it are kept out of the report.'],
+        ].map(([Icon, h, b]) => {
+          const I = Icon as typeof Lock;
+          return (
+            <div key={h as string} className="row" style={{ alignItems: 'flex-start', gap: 12 }}>
+              <span style={{ width: 32, height: 32, flex: 'none', borderRadius: 16, background: 'var(--sel)', display: 'grid', placeItems: 'center' }}><I size={16} /></span>
+              <div className="stack" style={{ gap: 2 }}><strong className="small">{h as string}</strong><span className="small muted">{b as string}</span></div>
+            </div>
+          );
+        })}
+      </aside>
     </div>
   );
 }

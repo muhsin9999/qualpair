@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Cloud, Laptop } from 'lucide-react';
+import { Cloud, Download, Laptop } from 'lucide-react';
 import { getCloudReader, getDeviceReader } from '../../ai/registry';
 import { approveForCloud } from '../../domain/deid/rules';
 import { agreement, formatKappa, kappaBand, seededSample } from '../../domain/stats/agreement';
 import { downloadText } from '../../services/export';
 import { ledgerSink, newCode } from '../../services/core';
-import { PageHead, Track } from '../../app/ui';
+import { PageHead, Segmented, Track } from '../../app/ui';
 import type { Code } from '../../types';
 
 interface EvalFile {
@@ -53,7 +53,7 @@ function ResultTable({ r, note }: { r: Result; note?: string }) {
  * Public, already-anonymised data, so the cloud reader may read it directly.
  */
 export default function EvalPage() {
-  const [n, setN] = useState(60);
+  const [n, setN] = useState(200);
   const [progress, setProgress] = useState<{ done: number; total: number; label: string } | null>(null);
   const [results, setResults] = useState<Result[]>([]);
   const [err, setErr] = useState('');
@@ -103,27 +103,70 @@ export default function EvalPage() {
     }
   }
 
+  const latest = (k: Result['reader']) => {
+    const mine = results.find((r) => r.reader === k);
+    if (mine) return { r: mine, when: 'this run' };
+    const old = SAVED.filter((r) => r.reader === k).at(-1);
+    return old ? { r: old, when: `measured ${new Date(old.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` } : null;
+  };
+  const minutes = Math.max(1, Math.round((n * 5 + 60) / 60));
+
   return (
     <div className="main" style={{ minHeight: '100%' }}>
-      <PageHead title="Evaluation" sub="Each reader against a published expert coding: Le Foll (2025), interviews with linguists about open science, CC BY-SA 4.0">
+      <PageHead title="How accurate are the readers?" sub="Each reader is scored against a published expert coding: Le Foll (2025), interviews with linguists about open science, CC BY-SA 4.0.">
         <Link className="btn ghost" to="/studies">Your studies</Link>
       </PageHead>
-      <div className="work col" style={{ maxWidth: 1000 }}>
-        {SAVED.map((r) => <ResultTable key={`${r.reader}-${r.date}`} r={r} note={`measured ${new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`} />)}
-        <strong style={{ marginTop: SAVED.length ? 12 : 0 }}>Run it yourself</strong>
-        <div className="card pad stack">
-          <span className="small muted">12 codes, interviewee turns as units, a random sample (seed 2026). The reference is one expert coder, not a gold standard. Code definitions were written by the QualPair team from the dataset’s code names.</span>
-          <label className="row small">Units <input className="input" type="number" min={10} max={747} value={n} onChange={(e) => setN(Number(e.target.value))} style={{ width: 100 }} /></label>
-          <div className="row">
-            <button className="btn primary" disabled={!!progress} onClick={() => run('laptop')}><Laptop size={16} /> Run laptop reader</button>
-            <button className="btn" disabled={!!progress} onClick={() => run('cloud')}><Cloud size={16} /> Run cloud reader</button>
-            {results.length > 0 && <button className="btn ghost" onClick={() => downloadText(`qualcheck-eval-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ dataset: 'le-foll-2025', userAgent: navigator.userAgent, results }, null, 2), 'application/json')}>Download results</button>}
+      <div className="work ev">
+        <div className="stack grow" style={{ gap: 18, minWidth: 0 }}>
+          <div className="ev-scores">
+            {(['laptop', 'cloud'] as const).map((k) => {
+              const l = latest(k);
+              const Icon = k === 'laptop' ? Laptop : Cloud;
+              return (
+                <div key={k} className={`ev-score ${k}${l ? '' : ' none'}`}>
+                  <span className="ev-score-who"><Icon size={16} /> {k === 'laptop' ? 'Laptop reader · Gemini Nano' : `Cloud reader · ${l?.r.model ?? 'Gemini'}`}</span>
+                  {l ? (
+                    <>
+                      <span className="ev-score-k">κ {formatKappa(l.r.macroKappa)} <span>{kappaBand(l.r.macroKappa)}</span></span>
+                      <span className="small muted">Average across codes · {l.r.n} units · {(l.r.seconds / l.r.n).toFixed(1)} s per unit · {l.when}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="ev-score-k">Not measured yet</span>
+                      <span className="small muted">Needs Chrome with Gemini Nano. Run it with the panel on the right.</span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          {progress && <><span className="small">{progress.label}: {progress.done} of {progress.total}</span><Track value={progress.done} total={progress.total} /></>}
-          {err && <div className="notice">{err}</div>}
+          <p className="small muted" style={{ margin: 0 }}>κ (Cohen’s kappa) is agreement beyond chance: 0.41–0.60 is moderate, 0.61–0.80 substantial. We decided before seeing any result that 0.40 counts as a useful first pass and 0.60 as good. The reference is one expert coder, not a gold standard.</p>
+          {results.map((r) => <ResultTable key={r.reader} r={r} note="this run" />)}
+          {SAVED.map((r) => <ResultTable key={`${r.reader}-${r.date}`} r={r} note={`measured ${new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`} />)}
         </div>
-        {results.map((r) => <ResultTable key={r.reader} r={r} note="this run" />)}
-        {!results.length && <div className="small faint">The laptop reader needs Chrome with Gemini Nano; 60 units take about 5 minutes.</div>}
+
+        <aside className="ev-side card pad stack">
+          <strong style={{ fontSize: 17 }}>Run it yourself</strong>
+          <span className="small muted">A random sample of interviewee turns (seed 2026), coded with 12 codes. Code definitions were written by the QualPair team from the dataset’s code names.</span>
+          <div className="stack" style={{ gap: 6 }}>
+            <span className="small" style={{ fontWeight: 700 }}>How many turns</span>
+            <Segmented label="How many turns" value={n} onChange={setN} options={[[60, '60'], [200, '200'], [747, 'All 747']]} />
+            <span className="tiny faint">{n === 200 ? 'Same size as the saved cloud run, so the two compare directly. ' : ''}Laptop reader: about {minutes} min.</span>
+          </div>
+          <button className="btn primary" disabled={!!progress} onClick={() => run('laptop')}><Laptop size={16} /> Run laptop reader</button>
+          <button className="btn" disabled={!!progress} onClick={() => run('cloud')}><Cloud size={16} /> Run cloud reader</button>
+          {progress && (
+            <div className="stack" style={{ gap: 6 }} aria-live="polite">
+              <span className="small">{progress.label}: {progress.done} of {progress.total}</span>
+              <Track value={progress.done} total={progress.total} kind={progress.label.startsWith('Laptop') ? 'laptop' : 'cloud'} />
+              <span className="tiny faint">Keep this tab open. You can use other windows.</span>
+            </div>
+          )}
+          {err && <div className="notice">{err}</div>}
+          {results.length > 0 && (
+            <button className="btn" onClick={() => downloadText(`qualpair-eval-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ dataset: 'le-foll-2025', userAgent: navigator.userAgent, results }, null, 2), 'application/json')}><Download size={16} /> Download results</button>
+          )}
+        </aside>
       </div>
     </div>
   );
