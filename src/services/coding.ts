@@ -88,7 +88,7 @@ export async function runLaptopReader(projectId: string, reader: DeviceReader, o
     try {
       const label = participants.get(transcripts.get(s.transcriptId) ?? '') ?? 'Participant';
       const r = await reader.codeSegment(book.codes, label, s.text, log);
-      await saveSegmentCoding(projectId, s.id, 'device', r.codeIds, { evidence: r.evidence, promptVersion: reader.isPractice ? 'practice' : 'device-code-s1@1' });
+      await saveSegmentCoding(projectId, s.id, 'device', r.codeIds, { evidence: r.evidence, promptVersion: reader.isPractice ? 'practice' : (r.promptVersion ?? 'device-code-s1@1') });
       progress.done++;
       progress.current = { segmentId: s.id, codeIds: r.codeIds };
     } catch (e) {

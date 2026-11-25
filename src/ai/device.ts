@@ -1,7 +1,8 @@
 import { getGenerativeModel, InferenceMode } from 'firebase/ai';
 import { getFirebaseAI } from '../firebase/init';
 import type { Code } from '../types';
-import { checkEvidence, deidPrompt, deidSchema, devicePrompt, deviceSchema, namesToIds, parseJson, PROMPT_VERSIONS } from './prompts';
+import { deidPrompt, deidSchema, parseJson, PROMPT_VERSIONS } from './prompts';
+import { codeFitting, isTooLarge, type FitState } from './fit';
 import { ReaderUnavailableError, type CodeResult, type DeviceReader, type DeviceStatus, type LedgerSink } from './readers';
 
 const OPTS = {
@@ -59,31 +60,47 @@ export class FirebaseDeviceReader implements DeviceReader {
     });
   }
 
+  /** How far the prompt had to be shortened to fit this browser's model (shared by all paragraphs in this tab). */
+  private static fit: FitState = { level: 0 };
+
   async codeSegment(codes: Code[], speakerLabel: string, text: string, log: LedgerSink): Promise<CodeResult> {
-    const prompt = devicePrompt(codes, speakerLabel, text);
-    try {
-      const res = await this.model(deviceSchema(codes)).generateContent(prompt);
-      if (res.response.inferenceSource && res.response.inferenceSource !== 'on_device') {
-        throw new ReaderUnavailableError('The laptop reader did not run on this device.');
+    return codeFitting(codes, speakerLabel, text, FirebaseDeviceReader.fit, async (a, version) => {
+      try {
+        const res = await this.model(a.schema).generateContent(a.prompt);
+        if (res.response.inferenceSource && res.response.inferenceSource !== 'on_device') {
+          throw new ReaderUnavailableError('The laptop reader did not run on this device.');
+        }
+        const out = res.response.text();
+        log({ task: 'code-segment', where: 'on_device', model: this.modelName, promptVersion: version, segmentCount: 1, bytesSent: 0, ok: true });
+        return out;
+      } catch (e) {
+        const error = isTooLarge(e) ? 'Input too large for this browser’s model; retried with a shorter prompt.' : String(e);
+        log({ task: 'code-segment', where: 'on_device', model: this.modelName, promptVersion: version, segmentCount: 1, bytesSent: 0, ok: false, error });
+        throw e;
       }
-      const out = parseJson<{ codes?: unknown; evidence?: unknown }>(res.response.text());
-      log({ task: 'code-segment', where: 'on_device', model: this.modelName, promptVersion: PROMPT_VERSIONS.deviceCode, segmentCount: 1, bytesSent: 0, ok: true });
-      return { codeIds: namesToIds(out.codes, codes), evidence: checkEvidence(out.evidence, text) };
-    } catch (e) {
-      log({ task: 'code-segment', where: 'on_device', model: this.modelName, promptVersion: PROMPT_VERSIONS.deviceCode, segmentCount: 1, bytesSent: 0, ok: false, error: String(e) });
-      throw e;
-    }
+    });
   }
 
-  async suggestDeid(text: string, log: LedgerSink): Promise<string[]> {
+  /** Halve a paragraph at a sentence boundary (or the middle) so each half fits the model. */
+  private static halves(text: string): [string, string] {
+    const mid = text.length / 2;
+    const cuts = [...text.matchAll(/[.!?]\s+/g)].map((m) => (m.index ?? 0) + m[0].length);
+    const cut = cuts.length ? cuts.reduce((a, b) => (Math.abs(b - mid) < Math.abs(a - mid) ? b : a)) : Math.floor(mid);
+    return [text.slice(0, cut), text.slice(cut)];
+  }
+
+  async suggestDeid(text: string, log: LedgerSink, depth = 0): Promise<string[]> {
     try {
       const res = await this.model(deidSchema).generateContent(deidPrompt(text));
       const out = parseJson<{ items?: unknown }>(res.response.text());
       log({ task: 'suggest-deid', where: 'on_device', model: this.modelName, promptVersion: PROMPT_VERSIONS.deviceDeid, segmentCount: 1, bytesSent: 0, ok: true });
       return Array.isArray(out.items) ? out.items.filter((x): x is string => typeof x === 'string' && text.includes(x)) : [];
     } catch (e) {
-      log({ task: 'suggest-deid', where: 'on_device', model: this.modelName, promptVersion: PROMPT_VERSIONS.deviceDeid, segmentCount: 1, bytesSent: 0, ok: false, error: String(e) });
-      throw e;
+      const tooLarge = isTooLarge(e) && depth < 3 && text.length > 80;
+      log({ task: 'suggest-deid', where: 'on_device', model: this.modelName, promptVersion: PROMPT_VERSIONS.deviceDeid, segmentCount: 1, bytesSent: 0, ok: false, error: tooLarge ? 'Input too large for this browser’s model; checked in two halves.' : String(e) });
+      if (!tooLarge) throw e;
+      const [a, b] = FirebaseDeviceReader.halves(text);
+      return [...new Set([...(await this.suggestDeid(a, log, depth + 1)), ...(await this.suggestDeid(b, log, depth + 1))])];
     }
   }
 }

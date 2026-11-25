@@ -5,6 +5,8 @@ export type DeviceStatus = 'available' | 'downloadable' | 'downloading' | 'unava
 export interface CodeResult {
   codeIds: string[];
   evidence?: string;
+  /** Prompt version that produced this result, when the reader can vary it. */
+  promptVersion?: string;
 }
 
 export type LedgerSink = (entry: Omit<LedgerEntry, 'id' | 'projectId' | 'at'>) => void;

@@ -24,6 +24,8 @@ interface Result {
   seconds: number;
   perCode: Array<{ code: string; refPositives: number; kappa: number | null; ac1: number | null; po: number }>;
   macroKappa: number | null;
+  /** Prompt versions used (the laptop reader shortens its prompt if this browser's model limit needs it). */
+  prompts?: string[];
 }
 
 /** Runs saved in results/ (real runs, downloaded from this page). The file name carries the date. */
@@ -64,6 +66,7 @@ export default function EvalPage() {
       const units = seededSample(data.units, n, 2026);
       const log = ledgerSink('eval');
       const got = new Map<string, string[]>();
+      const prompts = new Set<string>();
       const t0 = performance.now();
       setProgress({ done: 0, total: units.length, label: kind === 'laptop' ? 'Laptop reader' : 'Cloud reader' });
       if (kind === 'laptop') {
@@ -71,6 +74,7 @@ export default function EvalPage() {
         for (const [i, u] of units.entries()) {
           const out = await r.codeSegment(codes, 'Interviewee', u.text, log);
           got.set(u.id, out.codeIds);
+          if (out.promptVersion) prompts.add(out.promptVersion);
           setProgress({ done: i + 1, total: units.length, label: 'Laptop reader' });
         }
       } else {
@@ -91,7 +95,7 @@ export default function EvalPage() {
       });
       const ks = perCode.filter((p) => p.refPositives > 0 && p.kappa !== null).map((p) => p.kappa!);
       const reader = kind === 'laptop' ? getDeviceReader() : getCloudReader();
-      setResults((rs) => [...rs.filter((r) => r.reader !== kind), { reader: kind, model: reader.modelName, n: units.length, seconds, perCode, macroKappa: ks.length ? ks.reduce((a, b) => a + b, 0) / ks.length : null }]);
+      setResults((rs) => [...rs.filter((r) => r.reader !== kind), { reader: kind, model: reader.modelName, n: units.length, seconds, perCode, macroKappa: ks.length ? ks.reduce((a, b) => a + b, 0) / ks.length : null, ...(prompts.size ? { prompts: [...prompts] } : {}) }]);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {

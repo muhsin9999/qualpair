@@ -6,6 +6,10 @@ import type { Code } from '../types';
  */
 export const PROMPT_VERSIONS = {
   deviceCode: 'device-code-s1@1',
+  /** Same task with one-sentence definitions and no exclusions, for Chrome builds with a small input limit. */
+  deviceCodeShort: 'device-code-s1-short@1',
+  /** Short definitions, codebook split across several calls. */
+  deviceCodeSplit: 'device-code-s1-split@1',
   deviceDeid: 'device-deid@1',
   cloudCode: 'cloud-code-batch@1',
   cloudDraft: 'cloud-draft-codebook@1',
@@ -16,6 +20,23 @@ function codeLine(c: Code): string {
   const parts = [`- ${c.name}: ${c.definition.trim()}`];
   if (c.whenNotToUse.trim()) parts.push(`(not when: ${c.whenNotToUse.trim()})`);
   return parts.join(' ');
+}
+
+function firstSentence(t: string, max = 160): string {
+  const s = t.trim().split(/(?<=[.!?])\s+/)[0] ?? '';
+  return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
+}
+
+/** Strategy S1 with one-sentence definitions and no exclusions: the same task in fewer tokens. */
+export function devicePromptShort(codes: Code[], speakerLabel: string, text: string): string {
+  return [
+    'Apply this qualitative codebook to one interview segment. Apply a code only if the segment clearly matches it.',
+    'Codebook:',
+    ...codes.map((c) => `- ${c.name}: ${firstSentence(c.definition)}`),
+    `Segment (${speakerLabel}):`,
+    `"""${text}"""`,
+    'Return JSON: {"codes": [code names], "evidence": "exact words copied from the segment"}.',
+  ].join('\n');
 }
 
 /** Strategy S1: one call per segment, multi-label, compact codebook. */
