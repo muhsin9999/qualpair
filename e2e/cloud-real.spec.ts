@@ -9,7 +9,7 @@ test('real cloud reader codes approved access copies', async ({ page }) => {
   await page.goto('/studies');
   await page.evaluate(() => localStorage.removeItem('qualcheck.practiceReaders'));
   await page.reload();
-  await page.getByRole('button', { name: /Try the sample study/ }).click();
+  await page.getByRole('button', { name: /Open the sample/ }).click();
   await expect(page.getByRole('heading', { name: 'UK healthcare study (sample)' })).toBeVisible({ timeout: 30_000 });
   await page.getByRole('link', { name: 'Access copies' }).click();
   await expect(page.getByText('Always hide')).toBeVisible();

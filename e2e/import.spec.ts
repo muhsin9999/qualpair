@@ -5,7 +5,7 @@ import path from 'node:path';
 test('imports a .docx transcript and pasted text', async ({ page }) => {
   await page.goto('/studies?practice');
   page.once('dialog', (d) => d.accept('Import test'));
-  await page.getByRole('button', { name: 'New study' }).click();
+  await page.getByRole('button', { name: 'New study' }).first().click();
   await expect(page.getByRole('heading', { name: 'Interviews' })).toBeVisible();
   await page.locator('input[type=file]').setInputFiles(path.join(import.meta.dirname, 'fixtures', 'zhang-7.docx'));
   await expect(page.getByText('Imported 1 interview.')).toBeVisible({ timeout: 20_000 });

@@ -23,6 +23,8 @@ Every AI call is logged (time, where it ran, model, prompt version); cloud calls
 - **Explicit modes, never "prefer".** Raw transcripts only ever go to `InferenceMode.ONLY_ON_DEVICE`; if Gemini Nano isn't available, the laptop reader refuses rather than falling back to the cloud.
 - **A type guard for the cloud.** The cloud reader only accepts `ApprovedAccessSegment`, whose text type (`ApprovedText`) can only be created by `approveForCloud()`. That function refuses copies with undecided suggestions or with any "always hide" name still visible. A unit test checks that listed names never reach the cloud.
 - **Structured output on both sides.** The laptop reader uses Chrome's `responseConstraint` (JSON Schema with the code names as an enum); the cloud reader uses `responseJsonSchema`. Evidence quotes are kept only if they are exact substrings of the paragraph.
+- **Remote Config for what may change.** The cloud model name and the starting pass mark and sample size for new studies come from Firebase Remote Config, with built-in defaults that work offline. The report names the model each study actually used.
+- **Works offline.** After the first visit the app and the laptop reader run with no connection; only the cloud reader waits for one.
 - **Measured, not assumed.** Both readers are scored per code against the researcher's own sample, with the pass mark fixed before any reader runs. Codes below the pass mark are held back from the report.
 
 ## Evaluation (real data, single expert reference)
@@ -53,7 +55,7 @@ REAL_CLOUD=1 npx playwright test e2e/cloud-real.spec.ts   # real cloud reader vi
 
 ## Architecture
 
-Static single-page app: **Vite + React + TypeScript**, data in **IndexedDB (Dexie)**, **Firebase AI Logic** with **App Check (reCAPTCHA Enterprise)**, **Firebase Hosting**, offline-capable **PWA**. No backend, no accounts: studies never leave the browser except the approved access copies sent to the cloud reader.
+Static single-page app: **Vite + React + TypeScript**, data in **IndexedDB (Dexie)**, **Firebase AI Logic** with **App Check (reCAPTCHA Enterprise)**, **Remote Config**, **Firebase Hosting**, offline-capable **PWA**. No backend, no accounts: studies never leave the browser except the approved access copies sent to the cloud reader. Firestore and Authentication are left out on purpose: storing transcripts in a cloud database would break that promise.
 
 ```
 src/

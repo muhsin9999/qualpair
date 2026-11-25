@@ -11,7 +11,7 @@ async function shot(page: import('@playwright/test').Page, name: string) {
  */
 test('sample study: import → sample → both readers → access copies → agreement → review → report', async ({ page }) => {
   await page.goto('/studies?practice');
-  await page.getByRole('button', { name: /Try the sample study/ }).click();
+  await page.getByRole('button', { name: /Open the sample/ }).click();
   await expect(page.getByRole('heading', { name: 'UK healthcare study (sample)' })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('Practice readers · no AI')).toBeVisible();
   await shot(page, '01-overview-empty');
@@ -90,5 +90,6 @@ test('sample study: import → sample → both readers → access copies → agr
   await page.getByRole('link', { name: 'Overview' }).click();
   await shot(page, '12-overview-done');
   await page.goto('/studies');
+  await expect(page.locator('.st-card .st-steps').first()).toBeVisible({ timeout: 15_000 });
   await shot(page, '00-projects');
 });

@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Cloud, Laptop, Play, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, Cloud, Laptop, Lock, MonitorDown, Plus, Trash2, UserRound } from 'lucide-react';
 import { db } from '../../db/db';
 import { createProject, deleteProject } from '../../services/core';
 import { loadSampleProject } from '../../services/sample';
@@ -11,6 +11,20 @@ import { useRuns, eta, isRunning, isWarmingUp } from '../../app/runs';
 import { kappaBand } from '../../domain/stats/agreement';
 import type { Project } from '../../types';
 import { Logo } from '../../app/Logo';
+import { useInstall } from '../../app/install';
+
+type Stats = NonNullable<Awaited<ReturnType<typeof studyStats>>>;
+
+/** The seven steps of a study, who does each, and how far along it is (0 to 1). */
+const STEPS: Array<{ name: string; route: string; next: string; who: 'you' | 'laptop' | 'cloud'; done: (s: Stats) => number }> = [
+  { name: 'Interviews', route: 'interviews', next: 'Import interviews', who: 'you', done: (s) => (s.interviews ? 1 : 0) },
+  { name: 'Codebook', route: 'codebook', next: 'Write the codebook', who: 'you', done: (s) => (s.codes ? 1 : 0) },
+  { name: 'Your sample', route: 'sample', next: 'Code your sample', who: 'you', done: (s) => (s.sampleSize ? s.sampleDone / s.sampleSize : 0) },
+  { name: 'Laptop reader', route: 'laptop', next: 'Run the laptop reader', who: 'laptop', done: (s) => (s.codable ? s.laptopDone / s.codable : 0) },
+  { name: 'Access copies', route: 'access', next: 'Approve access copies', who: 'laptop', done: (s) => (s.interviews ? s.approved / s.interviews : 0) },
+  { name: 'Cloud reader', route: 'cloud', next: 'Run the cloud reader', who: 'cloud', done: (s) => (s.codable ? s.cloudDone / s.codable : 0) },
+  { name: 'Disagreements', route: 'review', next: 'Decide disagreements', who: 'you', done: (s) => (!s.laptopDone || !s.cloudDone ? 0 : s.open ? s.decided / (s.decided + s.open) : 1) },
+];
 
 function median(xs: number[]) {
   if (!xs.length) return null;
@@ -19,41 +33,77 @@ function median(xs: number[]) {
   return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
 }
 
+function ReaderScore({ kind, k }: { kind: 'laptop' | 'cloud'; k: number | null }) {
+  const Icon = kind === 'laptop' ? Laptop : Cloud;
+  return (
+    <div className={`st-score ${kind}${k === null ? ' none' : ''}`}>
+      <span className="st-score-who"><Icon size={14} /> {kind === 'laptop' ? 'Laptop reader' : 'Cloud reader'}</span>
+      {k === null ? <span className="st-score-k">not scored yet</span> : <span className="st-score-k"><b>κ {k.toFixed(2)}</b> {kappaBand(k)}</span>}
+    </div>
+  );
+}
+
 function StudyCard({ p }: { p: Project }) {
   const s = useLiveQuery(() => studyStats(p.id), [p.id]);
   const ag = useLiveQuery(() => agreementByCode(p.id), [p.id]);
   const kl = median((ag?.codes ?? []).map((c) => c.laptop?.kappa).filter((k): k is number => typeof k === 'number'));
   const kc = median((ag?.codes ?? []).map((c) => c.cloud?.kappa).filter((k): k is number => typeof k === 'number'));
-  let next = 'Open study';
-  if (s) {
-    if (!s.interviews) next = 'Import interviews';
-    else if (!s.codes) next = 'Write the codebook';
-    else if (s.sampleDone < s.sampleSize || !s.sampleSize) next = 'Code your sample';
-    else if (s.laptopDone < s.codable) next = 'Run the laptop reader';
-    else if (s.approved < s.interviews) next = 'Approve access copies';
-    else if (s.cloudDone < s.codable) next = 'Run the cloud reader';
-    else if (s.open) next = `${s.open} disagreements to decide`;
-    else next = 'Build the report';
-  }
+  const progress = s ? STEPS.map((st) => Math.max(0, Math.min(1, st.done(s)))) : STEPS.map(() => 0);
+  const at = progress.findIndex((v) => v < 1);
+  const next = at < 0 ? { label: 'Build the report', route: 'report' } : { label: s?.open && at === 6 ? `${s.open} disagreement${s.open === 1 ? '' : 's'} to decide` : STEPS[at]!.next, route: STEPS[at]!.route };
+  const doneSteps = progress.filter((v) => v >= 1).length;
+
   return (
-    <Link to={`/p/${p.id}`} className="card lift pad stack" style={{ textDecoration: 'none', gap: 8 }}>
-      <div className="row">
-        <div style={{ fontSize: 17, fontWeight: 800, flex: 1 }}>{p.name}</div>
-        <button className="btn ghost small" aria-label={`Delete ${p.name}`} title="Delete study"
-          onClick={(e) => { e.preventDefault(); if (confirm(`Delete “${p.name}” and everything in it from this browser?`)) void deleteProject(p.id); }}>
-          <Trash2 size={14} />
+    <article className="st-card">
+      <div className="row" style={{ alignItems: 'flex-start', gap: 10 }}>
+        <div className="grow stack" style={{ gap: 4, minWidth: 0 }}>
+          <Link to={`/p/${p.id}`} className="st-name">{p.name}</Link>
+          <span className="small faint">
+            {s ? `${s.interviews} interview${s.interviews === 1 ? '' : 's'} · ${s.codes} code${s.codes === 1 ? '' : 's'}` : '…'} · updated {new Date(p.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+          </span>
+        </div>
+        <button className="btn ghost small st-del" aria-label={`Delete ${p.name}`} title="Delete study"
+          onClick={() => { if (confirm(`Delete “${p.name}” and everything in it from this browser?`)) void deleteProject(p.id); }}>
+          <Trash2 size={15} />
         </button>
       </div>
-      <div className="small faint">{s ? `${s.interviews} interviews` : '…'} · {new Date(p.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</div>
-      <div className="row small" style={{ gap: 14, minHeight: 20 }}>
-        {kl !== null && <span className="row laptop" style={{ gap: 5, fontWeight: 700 }}><Laptop size={14} /> κ {kl.toFixed(2)} {kappaBand(kl)}</span>}
-        {kc !== null && <span className="row cloud" style={{ gap: 5, fontWeight: 700 }}><Cloud size={14} /> κ {kc.toFixed(2)}</span>}
+
+      <div className="stack" style={{ gap: 7, visibility: s ? 'visible' : 'hidden' }}>
+        <div className="st-steps" role="img" aria-label={`${doneSteps} of ${STEPS.length} steps done`}>
+          {STEPS.map((st, i) => (
+            <span key={st.name} className={`st-seg ${st.who}${i === at ? ' now' : ''}`} title={`${st.name}: ${Math.round(progress[i]! * 100)}%`}>
+              <i style={{ width: `${progress[i]! * 100}%` }} />
+            </span>
+          ))}
+        </div>
+        <span className="tiny faint">{doneSteps} of {STEPS.length} steps{at >= 0 ? ` · now: ${STEPS[at]!.name.toLowerCase()}` : ' · ready to report'}</span>
       </div>
-      <div className="row" style={{ borderTop: '1px solid var(--rule)', paddingTop: 10, marginTop: 4, fontWeight: 600, fontSize: 14 }}>
-        <span className="spacer">{next}</span>
-        <ArrowRight size={16} color="var(--ink3)" />
+
+      <div className="st-scores">
+        <ReaderScore kind="laptop" k={kl} />
+        <ReaderScore kind="cloud" k={kc} />
       </div>
-    </Link>
+
+      <Link to={`/p/${p.id}/${next.route}`} className="st-next">
+        <span className="grow">{next.label}</span>
+        <ArrowRight size={17} />
+      </Link>
+    </article>
+  );
+}
+
+function SampleCard({ onOpen, busy, big }: { onOpen: () => void; busy: boolean; big?: boolean }) {
+  return (
+    <button className={`st-sample${big ? ' big' : ''}`} onClick={onOpen} disabled={busy}>
+      <span className="st-sample-kicker">Sample study · 6 real interviews</span>
+      <strong className="st-sample-title">How do international students in the UK decide where to seek healthcare?</strong>
+      <span className="st-sample-who">
+        <span><UserRound size={14} /> You code 15%</span>
+        <span><Laptop size={14} /> Laptop reads the rest</span>
+        <span><Cloud size={14} /> Cloud reads hidden-name copies</span>
+      </span>
+      <span className="st-sample-go">{busy ? 'Loading the interviews…' : 'Open the sample'} <ArrowRight size={17} /></span>
+    </button>
   );
 }
 
@@ -61,10 +111,12 @@ export function ProjectsPage() {
   const projects = useLiveQuery(() => db.projects.orderBy('updatedAt').reverse().toArray(), []);
   const runs = useRuns((s) => s.runs);
   const navigate = useNavigate();
+  const { canInstall, install } = useInstall();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const live = Object.values(runs).find((r) => isRunning(r));
   const liveProject = projects?.find((p) => p.id === live?.pid);
+  const hasSample = projects?.some((p) => p.isSample);
 
   async function newStudy() {
     const name = prompt('Name this study');
@@ -76,58 +128,69 @@ export function ProjectsPage() {
     setBusy(true);
     setErr('');
     try {
-      const id = await loadSampleProject();
-      navigate(`/p/${id}`);
+      navigate(`/p/${await loadSampleProject()}`);
     } catch (e) {
       setErr(String(e));
-    } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div style={{ minHeight: '100%', padding: '18px 40px 40px' }}>
-      <Link to="/" className="row" style={{ fontWeight: 800, textDecoration: 'none', color: 'var(--ink)', width: 'fit-content' }}>
-        <Logo size={26} fontSize={17} />
-      </Link>
-      <div className="center-col stack" style={{ gap: 22, marginTop: 28 }}>
-        <div className="row">
-          <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', margin: 0, flex: 1 }}>Your studies</h1>
+    <div className="st">
+      <header className="st-top">
+        <Link to="/" className="row" style={{ textDecoration: 'none', color: 'var(--ink)' }}><Logo size={28} fontSize={18} /></Link>
+        <span className="spacer" />
+        {canInstall && <button className="ld-link ld-install" onClick={() => void install()}><MonitorDown size={16} /> Install app</button>}
+        <Link className="ld-link" to="/eval">How accurate is it?</Link>
+      </header>
+
+      <main className="st-main">
+        <div className="st-head">
+          <div className="stack" style={{ gap: 8 }}>
+            <h1>Your studies</h1>
+            <span className="st-private"><Lock size={14} /> Kept only in this browser. Nothing leaves it unless you send approved access copies to the cloud reader.</span>
+          </div>
+          <span className="spacer" />
           <button className="btn primary" onClick={newStudy}><Plus size={16} /> New study</button>
         </div>
+
         {live && liveProject && (
-          <Link to={`/p/${live.pid}/${live.kind}`} className="card" style={{ background: 'var(--ink)', color: '#fff', padding: '24px 28px', textDecoration: 'none', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24 }}>
-            <div className="stack" style={{ gap: 10 }}>
-              <div className="row tiny" style={{ color: '#7fd1be', fontWeight: 700, letterSpacing: '0.1em' }}>READING NOW</div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>{liveProject.name}</div>
-              <div style={{ opacity: 0.75, fontSize: 14 }}>
-                The {live.kind === 'laptop' ? 'laptop' : 'cloud'} reader has done {live.progress.done} of {live.progress.total} paragraphs · {isWarmingUp(live) ? (live.kind === 'laptop' ? 'loading the model…' : 'starting…') : eta(live) || 'working out time left…'}
-              </div>
-              <div className="track" style={{ background: '#ffffff22' }}><i style={{ width: `${(live.progress.done / Math.max(1, live.progress.total)) * 100}%`, background: '#7fd1be' }} /></div>
+          <Link to={`/p/${live.pid}/${live.kind}`} className={`st-live ${live.kind}`}>
+            <div className="stack" style={{ gap: 10, minWidth: 0 }}>
+              <span className="st-live-kicker">{live.kind === 'laptop' ? <Laptop size={15} /> : <Cloud size={15} />} The {live.kind} reader is coding</span>
+              <strong style={{ fontSize: 20 }}>{liveProject.name}</strong>
+              <span style={{ opacity: 0.78, fontSize: 14 }}>
+                {live.progress.done} of {live.progress.total} paragraphs · {isWarmingUp(live) ? (live.kind === 'laptop' ? 'loading the model…' : 'starting…') : eta(live) || 'working out time left…'}
+              </span>
+              <div className="track" style={{ background: '#ffffff26' }}><i style={{ width: `${(live.progress.done / Math.max(1, live.progress.total)) * 100}%`, background: '#fff' }} /></div>
             </div>
             {live.last && (
-              <div className="stack" style={{ gap: 8, borderLeft: '1px solid #ffffff22', paddingLeft: 24 }}>
-                <div className="tiny" style={{ opacity: 0.6, fontWeight: 700 }}>Just coded</div>
-                <div style={{ font: 'italic 14.5px/1.5 var(--read)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>“{live.last.text}”</div>
+              <div className="st-live-quote">
+                <span className="tiny" style={{ opacity: 0.65, fontWeight: 700 }}>Just coded</span>
+                <span>“{live.last.text}”</span>
               </div>
             )}
           </Link>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
-          {projects?.map((p) => <StudyCard key={p.id} p={p} />)}
-          {!projects?.some((p) => p.isSample) && (
-            <button className="card pad stack" onClick={sample} disabled={busy} style={{ alignItems: 'center', justifyContent: 'center', textAlign: 'center', border: '1.5px dashed var(--rule)', cursor: 'pointer', minHeight: 170 }}>
-              <span style={{ width: 44, height: 44, borderRadius: 22, background: 'var(--sel)', display: 'grid', placeItems: 'center' }}><Play size={20} /></span>
-              <strong style={{ fontSize: 15 }}>{busy ? 'Loading the sample…' : 'Try the sample study'}</strong>
-              <span className="small muted" style={{ maxWidth: 260 }}>6 real interviews with international students in the UK. Watch the laptop and cloud readers code them, then compare with you.</span>
-            </button>
-          )}
-        </div>
+
+        {projects && projects.length === 0 ? (
+          <div className="st-empty">
+            <SampleCard onOpen={sample} busy={busy} big />
+            <div className="st-empty-own">
+              <h2>Or start with your own interviews</h2>
+              <p>Paste or upload transcripts (Word, text or subtitles). They stay in this browser.</p>
+              <button className="btn" onClick={newStudy}><Plus size={16} /> New study</button>
+            </div>
+          </div>
+        ) : (
+          <div className="st-grid">
+            {projects?.map((p) => <StudyCard key={p.id} p={p} />)}
+            {projects && !hasSample && <SampleCard onOpen={sample} busy={busy} />}
+            <button className="st-new" onClick={newStudy}><Plus size={20} /> Start a new study<span>Paste or upload transcripts. They stay in this browser.</span></button>
+          </div>
+        )}
         {err && <div className="notice">{err}</div>}
-        <div className="small faint" style={{ marginTop: 20 }}>
-          Your studies are stored only in this browser. <Link to="/eval">How accurate are the readers?</Link>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
