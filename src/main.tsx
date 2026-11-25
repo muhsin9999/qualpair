@@ -4,9 +4,11 @@ import { App } from './app/App';
 import './design/app.css';
 import { practiceMode } from './ai/registry';
 import { startRemoteConfig } from './firebase/config';
+import { listenForInstall } from './app/install';
 
 // Read ?practice once at start so the choice survives navigation.
 practiceMode();
+listenForInstall();
 
 // Cloud model name and starting values for new studies come from Firebase Remote Config (fetched after the first paint).
 if (!practiceMode()) setTimeout(() => void startRemoteConfig(), 1500);

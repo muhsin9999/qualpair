@@ -4,7 +4,13 @@ test('first page: explains the product, checks the computer, opens the sample st
   await page.goto('/?practice');
   await expect(page.getByRole('heading', { name: 'AI coding for interviews you can’t upload.' })).toBeVisible();
   // The demo ends with each reader's codes shown and the disagreement marked.
-  await expect(page.getByText('you decide')).toHaveCSS('opacity', '1', { timeout: 8_000 });
+  await expect(page.locator('.ld-legend')).toHaveCSS('opacity', '1', { timeout: 8_000 });
+  await expect(page.locator('.ld-legend')).toContainText('readers differ: you decide');
+  // Turning Wi-Fi off: the laptop reader keeps working, the cloud reader waits.
+  await page.getByRole('switch', { name: /Wi-Fi/ }).click();
+  await expect(page.getByText('Waits until you’re back online')).toBeVisible();
+  await expect(page.locator('.ld-legend')).toContainText('the laptop reader keeps coding');
+  await page.getByRole('switch', { name: /Wi-Fi/ }).click();
   await page.getByRole('button', { name: /Check my computer/ }).click();
   // Headless Chromium has no on-device model, so the check must say so and offer the cloud reader.
   await expect(page.locator('.ld-check').getByRole('button')).toHaveText(/Try it with the cloud reader|Try it on 6 real interviews/);

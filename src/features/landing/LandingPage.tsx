@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ChartColumn, Check, CircleCheck, CircleX, Cloud, Download, Laptop, LoaderCircle, RotateCcw, Scale, UserRound } from 'lucide-react';
+import { ArrowRight, ChartColumn, Check, CircleCheck, CircleX, Cloud, Download, Laptop, LoaderCircle, MonitorDown, RotateCcw, Scale, ShieldCheck, UserRound, Wifi, WifiOff } from 'lucide-react';
 import { db } from '../../db/db';
 import { loadSampleProject } from '../../services/sample';
 import type { DeviceStatus } from '../../ai/readers';
 import { Logo } from '../../app/Logo';
+import { useInstall } from '../../app/install';
 
 /** A real paragraph from the sample study (Zhang 2026, CC BY 4.0, interview 2). `ev` marks the words behind each code. */
 const PARA: Array<{ t: string; ev?: Ev; hide?: boolean }> = [
@@ -44,6 +45,7 @@ function Demo() {
   const [dragging, setDragging] = useState(false);
   const [hover, setHover] = useState<Ev | null>(null);
   const [run, setRun] = useState(0);
+  const [online, setOnline] = useState(true);
 
   // Rest the handle just left of the hidden word, so the black bar shows on the cloud side.
   const measure = useCallback(() => {
@@ -66,15 +68,23 @@ function Demo() {
     }
     setStage(0);
     setPos(100);
+    setOnline(true);
     const ts = TIMELINE.slice(1).map((ms, i) => window.setTimeout(() => setStage(i + 1), ms));
     return () => ts.forEach((t) => window.clearTimeout(t));
   }, [run]);
   useEffect(() => {
-    if (stage === 2) setPos(rest);
-  }, [stage, rest]);
+    if (stage === 2) setPos(online ? rest : 100);
+  }, [stage, rest]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (stage === 5 && reducedMotion()) setPos(rest);
   }, [stage, rest]);
+
+  function toggleWifi() {
+    const next = !online;
+    setOnline(next);
+    setStage(5);
+    setPos(next ? rest : 100);
+  }
 
   function moveTo(clientX: number) {
     const b = box.current?.getBoundingClientRect();
@@ -98,12 +108,12 @@ function Demo() {
         <div className="ld-paper-head">
           <span className="row laptop" style={{ gap: 8 }}><Laptop size={16} /> What your laptop reads</span>
           <span className="spacer" />
-          <span className="row cloud" style={{ gap: 8, opacity: pos < 96 ? 1 : 0.35, transition: 'opacity .3s' }}>What the cloud reads <Cloud size={16} /></span>
+          <span className="row cloud" style={{ gap: 8, opacity: online && pos < 96 ? 1 : 0.35, transition: 'opacity .3s' }}>{online ? 'What the cloud reads' : 'Nothing goes to the cloud'} {online ? <Cloud size={16} /> : <WifiOff size={16} />}</span>
         </div>
-        <div ref={box} className={`ld-compare${dragging ? ' dragging' : ''}`} onPointerDown={down} onPointerMove={(e) => dragging && moveTo(e.clientX)} onPointerUp={() => setDragging(false)} onPointerCancel={() => setDragging(false)}>
+        <div ref={box} className={`ld-compare${dragging ? ' dragging' : ''}`} onPointerDown={(e) => online && down(e)} onPointerMove={(e) => dragging && moveTo(e.clientX)} onPointerUp={() => setDragging(false)} onPointerCancel={() => setDragging(false)}>
           <p className="ld-text">{text(false)}</p>
           <p className="ld-text ld-cloud" style={{ clipPath: `inset(0 0 0 ${pos}%)` }} aria-hidden="true">{text(true)}</p>
-          <div className="ld-handle" style={{ left: `${pos}%`, opacity: stage >= 2 ? 1 : 0 }}>
+          <div className="ld-handle" style={{ left: `${pos}%`, opacity: stage >= 2 && online ? 1 : 0 }}>
             <button type="button" className="ld-knob" role="slider" aria-label="Compare what the laptop and the cloud read" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pos)}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -117,15 +127,19 @@ function Demo() {
           </div>
         </div>
         <div className="ld-paper-foot">
-          <span className="spacer">Example coding of a real interview paragraph · Zhang (2026), CC BY 4.0</span>
+          <button type="button" role="switch" aria-checked={online} className={`ld-wifi${online ? '' : ' off'}`} onClick={toggleWifi}>
+            <span className="ld-wifi-track"><span className="ld-wifi-dot">{online ? <Wifi size={12} /> : <WifiOff size={12} />}</span></span>
+            {online ? 'Try it: turn Wi-Fi off' : 'Wi-Fi is off'}
+          </button>
+          <span className="spacer" />
           <button type="button" className="ld-replay" onClick={() => setRun((r) => r + 1)}><RotateCcw size={13} /> Play again</button>
         </div>
       </div>
       <div className="ld-rows">
         {ROWS.map((r) => (
-          <div key={r.who} className={`ld-row ${r.kind}`}>
+          <div key={r.who} className={`ld-row ${r.kind}${r.kind === 'cloud' && !online ? ' paused' : ''}`}>
             <span className="ld-who"><r.icon size={16} /> {r.who}</span>
-            {r.codes.map((c, i) => {
+            {r.kind === 'cloud' && !online ? <span className="ld-wait"><WifiOff size={14} /> Waits until you’re back online</span> : r.codes.map((c, i) => {
               const agrees = r.kind === 'you' || YOU.has(c);
               return (
                 <span key={c} className={`ld-chip ${agrees ? r.kind : 'attn'}${stage >= r.at ? ' in' : ''}`} style={{ transitionDelay: `${i * 160}ms` }}
@@ -135,10 +149,15 @@ function Demo() {
                 </span>
               );
             })}
-            {r.kind === 'cloud' && <span className={`ld-decide${stage >= 5 ? ' in' : ''}`}>you decide</span>}
           </div>
         ))}
+        <p className={`ld-legend${stage >= 5 ? ' in' : ''}`}>
+          {online
+            ? <><span><Check size={14} /> agrees with you</span><span className="attn"><Scale size={14} /> readers differ: you decide</span></>
+            : <span className="laptop"><WifiOff size={14} /> Offline: the laptop reader keeps coding. The cloud reader waits.</span>}
+        </p>
       </div>
+      <p className="ld-credit">Example coding of a real interview paragraph · Zhang (2026), CC BY 4.0</p>
     </div>
   );
 }
@@ -186,6 +205,7 @@ export function LandingPage() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const { canInstall, install } = useInstall();
 
   async function trySample() {
     setBusy(true);
@@ -206,12 +226,14 @@ export function LandingPage() {
           <Logo size={30} fontSize={19} />
         </Link>
         <span className="spacer" />
+        {canInstall && <button className="ld-link ld-install" onClick={() => void install()}><MonitorDown size={16} /> Install app</button>}
         <Link className="ld-link" to="/eval">How accurate is it?</Link>
         <Link className="ld-link strong" to="/studies">Your studies</Link>
       </header>
 
       <section className="ld-hero">
         <div className="ld-pitch">
+          <span className="ld-eyebrow"><ShieldCheck size={16} /> For researchers whose ethics approval rules out cloud AI</span>
           <h1>AI coding for interviews you can’t upload.</h1>
           <p className="ld-sub">Gemini Nano codes the real transcripts on your laptop. The cloud only sees a copy with names hidden. Both are checked against your own coding.</p>
           <div className="row" style={{ gap: 22, flexWrap: 'wrap' }}>
