@@ -5,7 +5,7 @@ import {
   Activity, BookOpen, ChevronsUpDown, Cloud, EyeOff, Files, GitCompareArrows, LayoutDashboard, Laptop, Scale, FileChartColumn, UserRound,
 } from 'lucide-react';
 import { db } from '../db/db';
-import { practiceMode } from '../ai/registry';
+import { practiceMode, setPracticeMode } from '../ai/registry';
 import { usePid, useProject } from './hooks';
 import { studyStats } from './stats';
 import { Logo } from './Logo';
@@ -14,6 +14,16 @@ function pct(done: number, total: number) {
   if (!total) return '';
   if (done >= total) return '✓';
   return `${Math.floor((done / total) * 100)}%`;
+}
+
+/** Shown while practice readers (keyword rules, no AI) are on, with a way back to the real readers. */
+export function PracticeFlag() {
+  return (
+    <div className="practice-flag" title="Readers use keyword rules, not AI">
+      <span>Practice readers · no AI</span>
+      <button type="button" onClick={() => { if (confirm('Turn off practice readers and use the real AI readers (Gemini Nano on this computer, Gemini in the cloud)?')) { setPracticeMode(false); location.replace(location.pathname); } }}>Turn off</button>
+    </div>
+  );
 }
 
 export function Nav() {
@@ -34,7 +44,7 @@ export function Nav() {
   const base = `/p/${pid}`;
 
   return (
-    <nav className="nav" aria-label="Study">
+    <nav className="nav" id="study-nav" aria-label="Study">
       <Link to="/" className="brand" title="QualPair home page" aria-label="QualPair home page">
         <Logo size={26} fontSize={18} />
       </Link>
@@ -42,7 +52,7 @@ export function Nav() {
         <button className="switcher" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           <span style={{ minWidth: 0, flex: 1 }}>
             <div className="nm">{project?.name ?? '…'}</div>
-            <div className="mt">{s ? `${s.interviews} interviews` : ''}</div>
+            <div className="mt">{s ? `${s.interviews} interview${s.interviews === 1 ? '' : 's'}` : ''}</div>
           </span>
           <ChevronsUpDown size={14} color="var(--ink3)" />
         </button>
@@ -57,7 +67,7 @@ export function Nav() {
           </div>
         )}
       </div>
-      {practiceMode() && <div className="practice-flag" title="Readers use keyword rules, not AI">Practice readers · no AI</div>}
+      {practiceMode() && <PracticeFlag />}
       {item(base, 'Overview', LayoutDashboard)}
       <div className="nav-group">PREPARE</div>
       {item(`${base}/interviews`, 'Interviews', Files, s ? String(s.interviews) : '')}

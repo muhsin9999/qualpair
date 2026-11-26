@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Check, FileText, Trash2, Upload, X } from 'lucide-react';
+import { ArrowLeft, Check, FileText, Trash2, Upload, X } from 'lucide-react';
 import mammoth from 'mammoth';
 import { db } from '../../db/db';
-import { usePid, useParticipants, useTranscripts } from '../../app/hooks';
+import { paraNo, usePid, useParticipants, useTranscripts } from '../../app/hooks';
 import { Empty, PageHead } from '../../app/ui';
 import { deleteTranscript, importTranscript, setInterviewers } from '../../services/core';
 import type { Transcript } from '../../types';
@@ -20,13 +20,34 @@ async function fileToText(f: File): Promise<{ text: string; isVtt: boolean }> {
   return { text, isVtt: f.name.toLowerCase().endsWith('.vtt') || text.startsWith('WEBVTT') };
 }
 
+/** The whole transcript, as imported, with interviewer turns greyed (they are shown for context, not coded). */
+function Reader({ t, onBack }: { t: Transcript; onBack: () => void }) {
+  const segs = useLiveQuery(() => db.segments.where('transcriptId').equals(t.id).sortBy('index'), [t.id]);
+  return (
+    <div className="paper grow doc" style={{ minWidth: 0 }}>
+      <button className="btn ghost small" style={{ marginBottom: 10 }} onClick={onBack}><ArrowLeft size={15} /> All interviews</button>
+      <h2>{t.title}</h2>
+      {!segs ? <div className="empty small">Loading…</div> : segs.map((s) => (
+        <div key={s.id} className={`para${s.isInterviewer ? ' iv' : ''}`}>
+          <span className="ln">{paraNo(s.index)}</span>
+          <div>
+            <div className="who">{s.isInterviewer ? `Interviewer · ${s.speaker}` : `Participant · ${s.speaker}`}</div>
+            <div className="tx">{s.text}</div>
+          </div>
+          <span />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Panel({ t, onClose }: { t: Transcript; onClose: () => void }) {
   const participant = useLiveQuery(() => db.participants.get(t.participantId), [t.participantId]);
   const segs = useLiveQuery(() => db.segments.where('transcriptId').equals(t.id).sortBy('index'), [t.id]);
   const turns = (sp: string) => segs?.filter((s) => s.speaker === sp).length ?? 0;
   const sampleOf = (sp: string) => segs?.find((s) => s.speaker === sp)?.text ?? '';
   return (
-    <aside className="card lift" style={{ width: 380, flex: 'none' }}>
+    <aside className="card lift side" style={{ width: 380, flex: 'none', alignSelf: 'flex-start', maxHeight: '100%' }}>
       <div className="row" style={{ padding: '16px 18px', borderBottom: '1px solid var(--rule)' }}>
         <strong style={{ fontSize: 17, flex: 1 }}>{t.title}</strong>
         <button className="btn ghost small" onClick={onClose} aria-label="Close"><X size={16} /></button>
@@ -132,7 +153,8 @@ export default function InterviewsPage() {
         <button className="btn primary" onClick={() => fileRef.current?.click()}><Upload size={16} /> Import transcripts</button>
         <input ref={fileRef} type="file" multiple accept=".txt,.docx,.vtt,.md" hidden onChange={(e) => onFiles(e.target.files)} />
       </PageHead>
-      <div className="work">
+      <div className={selected ? 'work pane' : 'work'}>
+        {selected ? <Reader t={selected} onBack={() => setParams({})} /> : (
         <div className="grow stack">
           {status && <div className="notice neutral">{status}</div>}
           {paste && (
@@ -155,7 +177,7 @@ export default function InterviewsPage() {
                   {transcripts?.map((t) => {
                     const p = pmap.get(t.participantId);
                     return (
-                      <tr key={t.id} className={`click${selected?.id === t.id ? ' sel' : ''}`} onClick={() => setParams({ t: t.id })}>
+                      <tr key={t.id} className="click" title="Open the transcript" onClick={() => setParams({ t: t.id })}>
                         <td><span className="row" style={{ fontWeight: 600 }}><FileText size={15} color="var(--ink3)" /> {t.title}</span></td>
                         <td className="muted">{p?.label}</td>
                         <td className="muted">{p?.attributes.Group || <span className="faint">—</span>}</td>
@@ -169,6 +191,7 @@ export default function InterviewsPage() {
             </div>
           )}
         </div>
+        )}
         {selected && <Panel t={selected} onClose={() => setParams({})} />}
       </div>
     </>

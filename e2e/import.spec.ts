@@ -17,5 +17,7 @@ test('imports a .docx transcript and pasted text', async ({ page }) => {
   await expect(page.getByRole('cell', { name: 'Interview 2' })).toBeVisible();
   await page.getByRole('cell', { name: 'Interview 2' }).click();
   await expect(page.getByText('Who is the interviewer?')).toBeVisible();
+  // Opening an interview shows the whole transcript.
+  await expect(page.getByText('I went to the pharmacy instead.')).toBeVisible();
   await expect(page.getByText('Interviewer', { exact: true }).first()).toBeVisible();
 });

@@ -8,7 +8,12 @@ const KEY = 'qualcheck.practiceReaders';
 /** Practice readers are on when the URL has ?practice or the user turned them on in settings. */
 export function practiceMode(): boolean {
   try {
-    if (new URLSearchParams(location.search).has('practice')) localStorage.setItem(KEY, '1');
+    const q = new URLSearchParams(location.search).get('practice');
+    if (q !== null) {
+      // ?practice turns practice readers on; ?practice=0 (or off / false) turns them off again.
+      if (/^(0|off|false|no)$/i.test(q)) localStorage.removeItem(KEY);
+      else localStorage.setItem(KEY, '1');
+    }
     return localStorage.getItem(KEY) === '1';
   } catch {
     return false;

@@ -13,6 +13,8 @@ import type { Project } from '../../types';
 import { Logo } from '../../app/Logo';
 import { useInstall } from '../../app/install';
 import { NameDialog } from '../../app/NameDialog';
+import { PracticeFlag } from '../../app/Nav';
+import { practiceMode } from '../../ai/registry';
 
 type Stats = NonNullable<Awaited<ReturnType<typeof studyStats>>>;
 
@@ -145,6 +147,7 @@ export function ProjectsPage() {
       <header className="st-top">
         <Link to="/" className="row" style={{ textDecoration: 'none', color: 'var(--ink)' }}><Logo size={28} fontSize={18} /></Link>
         <span className="spacer" />
+        {practiceMode() && <div style={{ width: 250 }}><PracticeFlag /></div>}
         {canInstall && <button className="ld-link ld-install" onClick={() => void install()}><MonitorDown size={16} /> Install app</button>}
         <Link className="ld-link" to="/eval">How accurate is it?</Link>
       </header>

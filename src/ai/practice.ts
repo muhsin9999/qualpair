@@ -32,6 +32,36 @@ function match(codes: Code[], text: string, bias: number): CodeResult {
 
 const tick = () => new Promise((r) => setTimeout(r, 5));
 
+const MONTHS_DAYS = 'January February March April May June July August September October November December Monday Tuesday Wednesday Thursday Friday Saturday Sunday';
+/** Capitalised words that are not names: sentence openers, months, days and common abbreviations. */
+const NOT_NAMES = new Set(`I I'm I’m The A An And But So In At On For After Before Also Maybe Now Just Like Yes No Yeah Well OK Okay Oh Then This That It My We They He She You Because If When What Why How ${MONTHS_DAYS} UK NHS GP A&E English`.split(' '));
+const TITLE = /^(?:Dr|Mr|Mrs|Ms|Miss|Prof|St)\.?$/;
+
+/**
+ * Practice name finder (no AI): runs of capitalised words, kept together so "Dr. Hannah Abbott" or
+ * "Oakridge Community Clinic" stay one item. A single capitalised word at the start of a sentence is skipped.
+ */
+export function practiceNames(text: string): string[] {
+  const out = new Set<string>();
+  const re = /(?:(?:Dr|Mr|Mrs|Ms|Miss|Prof|St)\.? )?[A-Z][a-z’'-]+(?: (?:[A-Z][a-z’'-]+|of|de|van|von))*(?: [A-Z][a-z’'-]+)?/g;
+  for (const m of text.matchAll(re)) {
+    let words = m[0].split(' ');
+    let start = m.index ?? 0;
+    while (words.length && NOT_NAMES.has(words[0]!)) {
+      start += words[0]!.length + 1;
+      words = words.slice(1);
+    }
+    while (words.length && (NOT_NAMES.has(words[words.length - 1]!) || /^(of|de|van|von)$/.test(words[words.length - 1]!))) words = words.slice(0, -1);
+    if (!words.length) continue;
+    const titled = TITLE.test(words[0]!);
+    if (titled && words.length === 1) continue;
+    const atSentenceStart = start === 0 || /[.!?…:"“]\s*$|\n\s*$/.test(text.slice(0, start));
+    if (atSentenceStart && words.length < 2 && !titled) continue;
+    out.add(words.join(' '));
+  }
+  return [...out].filter((w) => text.includes(w));
+}
+
 export class PracticeDeviceReader implements DeviceReader {
   readonly kind = 'device' as const;
   readonly modelName = 'Practice laptop reader (keyword rules, no AI)';
@@ -48,8 +78,7 @@ export class PracticeDeviceReader implements DeviceReader {
   async suggestDeid(text: string, log: LedgerSink): Promise<string[]> {
     await tick();
     log({ task: 'suggest-deid', where: 'on_device', model: this.modelName, promptVersion: 'practice', segmentCount: 1, bytesSent: 0, ok: true });
-    const caps = text.match(/(?<=[a-z,] )(?:St |Dr |Mr |Mrs |Ms )?[A-Z][a-z’']+(?: [A-Z][a-z’']+)?/g) ?? [];
-    return [...new Set(caps)].filter((w) => !/^(I|The|UK|NHS|GP|A&E)$/.test(w)).slice(0, 3);
+    return practiceNames(text);
   }
 }
 

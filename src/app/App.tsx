@@ -1,5 +1,7 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { BrowserRouter, Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
+import { Logo } from './Logo';
 import { Nav } from './Nav';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ProjectsPage } from '../features/projects/ProjectsPage';
@@ -20,8 +22,17 @@ const Activity = lazy(() => import('../features/activity/ActivityPage'));
 const Eval = lazy(() => import('../features/eval/EvalPage'));
 
 function ProjectLayout() {
+  // In narrow windows the study menu becomes a drawer behind a Menu button.
+  const [menu, setMenu] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => setMenu(false), [pathname]);
   return (
-    <div className="shell">
+    <div className={menu ? 'shell menu-open' : 'shell'}>
+      <div className="mobile-bar">
+        <Link to="/" aria-label="QualPair home page" style={{ textDecoration: 'none' }}><Logo size={24} fontSize={17} /></Link>
+        <button className="btn small" aria-expanded={menu} aria-controls="study-nav" onClick={() => setMenu((m) => !m)}>{menu ? <X size={16} /> : <Menu size={16} />} Menu</button>
+      </div>
+      {menu && <div className="menu-backdrop" onClick={() => setMenu(false)} aria-hidden="true" />}
       <Nav />
       <main className="main">
         <ErrorBoundary>
