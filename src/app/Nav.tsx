@@ -35,7 +35,7 @@ export function Nav() {
 
   return (
     <nav className="nav" aria-label="Study">
-      <Link to="/studies" className="brand">
+      <Link to="/" className="brand" title="QualPair home page" aria-label="QualPair home page">
         <Logo size={26} fontSize={18} />
       </Link>
       <div style={{ position: 'relative' }}>

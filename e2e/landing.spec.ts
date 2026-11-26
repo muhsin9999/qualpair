@@ -21,6 +21,15 @@ test('first page: explains the product, checks the computer, opens the sample st
   await page.goto('/');
   await page.getByRole('button', { name: /Try it on 6 real interviews/ }).first().click();
   await expect(page.getByRole('heading', { name: 'UK healthcare study (sample)' })).toBeVisible({ timeout: 30_000 });
+  // The logo inside a study leads back to the first page.
+  await page.getByRole('link', { name: 'QualPair home page' }).click();
+  await expect(page.getByRole('heading', { name: 'AI coding for interviews you can’t upload.' })).toBeVisible();
   await page.goto('/studies');
   await expect(page.getByRole('link', { name: /UK healthcare study \(sample\)/ })).toHaveCount(1);
+  // Evaluation: typing a number of turns works (no stray leading zero).
+  await page.goto('/eval');
+  const box = page.getByLabel('Number of turns, 10 to 747');
+  await box.pressSequentially('0350');
+  await expect(box).toHaveValue('350');
+  await expect(page.getByText(/^350 turns\./)).toBeVisible();
 });

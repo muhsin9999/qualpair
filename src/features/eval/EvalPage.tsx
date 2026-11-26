@@ -7,6 +7,7 @@ import { agreement, formatKappa, kappaBand, seededSample } from '../../domain/st
 import { downloadText } from '../../services/export';
 import { ledgerSink, newCode } from '../../services/core';
 import { PageHead, Segmented, Track } from '../../app/ui';
+import { Logo } from '../../app/Logo';
 import type { Code } from '../../types';
 
 interface EvalFile {
@@ -54,6 +55,7 @@ function ResultTable({ r, note }: { r: Result; note?: string }) {
  */
 export default function EvalPage() {
   const [n, setN] = useState(200);
+  const [typed, setTyped] = useState('');
   const [progress, setProgress] = useState<{ done: number; total: number; label: string } | null>(null);
   const [results, setResults] = useState<Result[]>([]);
   const [err, setErr] = useState('');
@@ -113,9 +115,12 @@ export default function EvalPage() {
 
   return (
     <div className="main" style={{ minHeight: '100%' }}>
-      <PageHead title="How accurate are the readers?" sub="Each reader is scored against a published expert coding: Le Foll (2025), interviews with linguists about open science, CC BY-SA 4.0.">
-        <Link className="btn ghost" to="/studies">Your studies</Link>
-      </PageHead>
+      <header className="st-top">
+        <Link to="/" className="row" style={{ textDecoration: 'none', color: 'var(--ink)' }} aria-label="QualPair home page"><Logo size={28} fontSize={18} /></Link>
+        <span className="spacer" />
+        <Link className="ld-link strong" to="/studies">Your studies</Link>
+      </header>
+      <PageHead title="How accurate are the readers?" sub="Each reader is scored against a published expert coding: Le Foll (2025), interviews with linguists about open science, CC BY-SA 4.0." />
       <div className="work ev">
         <div className="stack grow" style={{ gap: 18, minWidth: 0 }}>
           <div className="ev-scores">
@@ -150,8 +155,19 @@ export default function EvalPage() {
           <span className="small muted">A random sample of interviewee turns (seed 2026), coded with 12 codes. Code definitions were written by the QualPair team from the dataset’s code names.</span>
           <div className="stack" style={{ gap: 6 }}>
             <span className="small" style={{ fontWeight: 700 }}>How many turns</span>
-            <Segmented label="How many turns" value={n} onChange={setN} options={[[60, '60'], [200, '200'], [747, 'All 747']]} />
-            <span className="tiny faint">{n === 200 ? 'Same size as the saved cloud run, so the two compare directly. ' : ''}Laptop reader: about {minutes} min.</span>
+            <Segmented label="How many turns" value={n} onChange={(v) => { setN(v); setTyped(''); }} options={[[60, '60'], [200, '200'], [747, 'All 747']]} />
+            <label className="row small" style={{ gap: 8 }}>
+              <span className="muted">or type a number</span>
+              <input className="input" inputMode="numeric" placeholder="10–747" aria-label="Number of turns, 10 to 747" style={{ width: 96 }} value={typed}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 3);
+                  setTyped(v);
+                  const num = Number(v);
+                  if (num >= 10 && num <= 747) setN(num);
+                }}
+                onBlur={() => { if (typed) { const num = Math.min(747, Math.max(10, Number(typed))); setN(num); setTyped(String(num)); } }} />
+            </label>
+            <span className="tiny faint">{n} turns. {n === 200 ? 'Same size as the saved cloud run, so the two compare directly. ' : ''}Laptop reader: about {minutes} min.</span>
           </div>
           <button className="btn primary" disabled={!!progress} onClick={() => run('laptop')}><Laptop size={16} /> Run laptop reader</button>
           <button className="btn" disabled={!!progress} onClick={() => run('cloud')}><Cloud size={16} /> Run cloud reader</button>

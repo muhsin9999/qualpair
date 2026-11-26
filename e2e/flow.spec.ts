@@ -37,8 +37,14 @@ test('sample study: import → sample → both readers → access copies → agr
     if (/medicine|tablet|paracetamol/.test(text)) await page.keyboard.press('3');
     if (/india|china|home country|back home/.test(text)) await page.keyboard.press('5');
     if (/antibiotic/.test(text)) await page.keyboard.press('8');
+    const before = await page.getByText(/Which codes apply to paragraph/).innerText();
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(60);
+    // Wait for the next paragraph (or the end) before pressing again.
+    await expect(async () => {
+      const done = await page.getByText('Sample done.').isVisible();
+      const now = done ? '' : await page.getByText(/Which codes apply to paragraph/).innerText();
+      expect(done || now !== before).toBe(true);
+    }).toPass({ timeout: 5_000 });
   }
   await expect(page.getByText('Sample done.')).toBeVisible();
 
