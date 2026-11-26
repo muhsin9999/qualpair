@@ -21,6 +21,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,json}'],
+        // The finished example (2 MB) is fetched only when someone opens it; it then lives in IndexedDB.
+        globIgnores: ['sample/finished.json'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: '/index.html',
         runtimeCaching: [

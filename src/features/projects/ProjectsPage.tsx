@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Cloud, Laptop, Lock, MonitorDown, Plus, Trash2, UserRound } from 'lucide-react';
 import { db } from '../../db/db';
 import { createProject, deleteProject } from '../../services/core';
-import { loadSampleProject } from '../../services/sample';
+import { FINISHED_ID, loadSampleProject } from '../../services/sample';
 import { agreementByCode } from '../../services/results';
 import { studyStats } from '../../app/stats';
 import { useRuns, eta, isRunning, isWarmingUp } from '../../app/runs';
@@ -120,7 +120,7 @@ export function ProjectsPage() {
   const [naming, setNaming] = useState(false);
   const live = Object.values(runs).find((r) => isRunning(r));
   const liveProject = projects?.find((p) => p.id === live?.pid);
-  const hasSample = projects?.some((p) => p.isSample);
+  const hasSample = projects?.some((p) => p.isSample && p.id !== FINISHED_ID);
 
   const newStudy = () => setNaming(true);
   async function create(name: string | null) {

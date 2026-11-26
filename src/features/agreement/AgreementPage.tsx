@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronRight, Cloud, Laptop } from 'lucide-react';
 import { codeColor, usePid, useProject } from '../../app/hooks';
+import { FinishedNote } from '../../app/FinishedNote';
 import { studyStats } from '../../app/stats';
 import { Empty, PageHead } from '../../app/ui';
 import { agreementByCode, type CodeAgreement } from '../../services/results';
@@ -55,6 +56,7 @@ export default function AgreementPage() {
         {s.open > 0 && <Link className="btn primary" to="../review"><ArrowRight size={16} /> Review {s.open} disagreements</Link>}
       </PageHead>
       <div className="work col">
+        <FinishedNote pid={pid} />
         {!ag.humanDone ? (
           <Empty action={<Link className="btn primary" to="../sample">Code your sample</Link>}>Code your sample first. The readers are scored against it.</Empty>
         ) : !scored.length ? (

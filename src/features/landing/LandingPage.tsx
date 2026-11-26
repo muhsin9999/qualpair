@@ -1,31 +1,39 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ChartColumn, Check, CircleCheck, CircleX, Cloud, Download, Laptop, LoaderCircle, MonitorDown, RotateCcw, Scale, ShieldCheck, UserRound, Wifi, WifiOff } from 'lucide-react';
 import { db } from '../../db/db';
-import { loadSampleProject } from '../../services/sample';
+import { FINISHED_ID, loadFinishedStudy, loadSampleProject } from '../../services/sample';
 import type { DeviceStatus } from '../../ai/readers';
 import { Logo } from '../../app/Logo';
 import { useInstall } from '../../app/install';
 
-/** A real paragraph from the sample study (Zhang 2026, CC BY 4.0, interview 2). `ev` marks the words behind each code. */
-const PARA: Array<{ t: string; ev?: Ev; hide?: boolean }> = [
-  { t: 'Actually, I’m not sure. I think ' },
-  { t: 'it depends on the antibiotic', ev: 'ab' },
-  { t: '. ' },
-  { t: 'In the UK, some might need a prescription', ev: 'home' },
-  { t: ', and ' },
-  { t: 'pharmacies won’t sell them directly', ev: 'nav' },
-  { t: ', but in ' },
-  { t: 'China', hide: true, ev: 'home' },
-  { t: ', you might be able to get some antibiotics without a prescription', ev: 'home' },
-  { t: '.' },
+/**
+ * A made-up paragraph (public interview data is already anonymised, so a real one can't show names).
+ * `ph` marks identifying details and the placeholder the cloud sees; `ev` marks the words behind each code.
+ */
+const PARA: Array<{ t: string; ev?: Ev; ph?: string }> = [
+  { t: 'I called ' },
+  { t: 'Dr Patel', ph: 'person 1', ev: 'nav' },
+  { t: ' at ', ev: 'nav' },
+  { t: 'Riverside Health Centre', ph: 'clinic 1', ev: 'nav' },
+  { t: ' on ' },
+  { t: '07700 900123', ph: 'phone' },
+  { t: ', but ' },
+  { t: 'the earliest appointment was ', ev: 'wait' },
+  { t: '14 March', ph: 'date', ev: 'wait' },
+  { t: '. My friend ' },
+  { t: 'Mei Lin', ph: 'person 2' },
+  { t: ' said ' },
+  { t: 'back in ', ev: 'home' },
+  { t: 'Chengdu', ph: 'city', ev: 'home' },
+  { t: ' you just walk into a hospital.', ev: 'home' },
 ];
-type Ev = 'home' | 'ab' | 'nav';
-const CODES: Record<Ev, string> = { home: 'Comparing home system', ab: 'Antibiotic beliefs', nav: 'Navigating the system' };
+type Ev = 'wait' | 'home' | 'nav';
+const CODES: Record<Ev, string> = { wait: 'Waiting & access', home: 'Comparing home system', nav: 'Navigating the system' };
 const ROWS = [
-  { who: 'You', icon: UserRound, kind: 'you', codes: ['home', 'ab'] as Ev[], at: 4 },
-  { who: 'Laptop reader', icon: Laptop, kind: 'laptop', codes: ['home', 'ab'] as Ev[], at: 1 },
-  { who: 'Cloud reader', icon: Cloud, kind: 'cloud', codes: ['home', 'nav'] as Ev[], at: 3 },
+  { who: 'You', icon: UserRound, kind: 'you', codes: ['wait', 'home'] as Ev[], at: 4 },
+  { who: 'Laptop reader', icon: Laptop, kind: 'laptop', codes: ['wait', 'home'] as Ev[], at: 1 },
+  { who: 'Cloud reader', icon: Cloud, kind: 'cloud', codes: ['wait', 'nav'] as Ev[], at: 3 },
 ] as const;
 const YOU = new Set<Ev>(ROWS[0].codes);
 
@@ -38,28 +46,14 @@ function reducedMotion() {
 
 function Demo() {
   const box = useRef<HTMLDivElement>(null);
-  const hidden = useRef<HTMLSpanElement>(null);
   const [stage, setStage] = useState(0);
   const [pos, setPos] = useState(100);
-  const [rest, setRest] = useState(30);
+  // The handle rests mid-paragraph: originals on the left, the cloud's copy on the right.
+  const rest = 50;
   const [dragging, setDragging] = useState(false);
   const [hover, setHover] = useState<Ev | null>(null);
   const [run, setRun] = useState(0);
   const [online, setOnline] = useState(true);
-
-  // Rest the handle just left of the hidden word, so the black bar shows on the cloud side.
-  const measure = useCallback(() => {
-    const b = box.current?.getBoundingClientRect();
-    const h = hidden.current?.getBoundingClientRect();
-    if (b && h && b.width) setRest(Math.max(8, Math.min(70, ((h.left - b.left - 14) / b.width) * 100)));
-  }, []);
-  useLayoutEffect(() => {
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (box.current) ro.observe(box.current);
-    void document.fonts?.ready.then(measure);
-    return () => ro.disconnect();
-  }, [measure]);
 
   useEffect(() => {
     if (reducedMotion()) {
@@ -98,9 +92,11 @@ function Demo() {
   }
 
   const text = (cloud: boolean) =>
-    PARA.map((p, i) => (
-      <span key={i} ref={!cloud && p.hide ? hidden : undefined} className={`${p.ev && p.ev === hover ? 'ld-ev' : ''}${cloud && p.hide ? ' ld-bar' : ''}`}>{p.t}</span>
-    ));
+    PARA.map((p, i) => {
+      const ev = p.ev && p.ev === hover ? ' ld-ev' : '';
+      if (p.ph) return <span key={i} className={`${cloud ? 'ld-tag' : 'ld-pii'}${ev}`} data-ph={cloud ? p.ph : undefined}>{p.t}</span>;
+      return <span key={i} className={ev.trim() || undefined}>{p.t}</span>;
+    });
 
   return (
     <div className="ld-demo">
@@ -157,14 +153,14 @@ function Demo() {
             : <span className="laptop"><WifiOff size={14} /> Offline: the laptop reader keeps coding. The cloud reader waits.</span>}
         </p>
       </div>
-      <p className="ld-credit">Example coding of a real interview paragraph · Zhang (2026), CC BY 4.0</p>
+      <p className="ld-credit"><span className="ld-key pii">Dr Patel</span> identifying details stay on your laptop · <span className="ld-key tag">person 1</span> what the cloud sees instead. Made-up example: the people, places, phone number and date are invented.</p>
     </div>
   );
 }
 
 type CheckState = 'idle' | 'checking' | DeviceStatus;
 
-function ComputerCheck({ onTry, busy }: { onTry: () => void; busy: boolean }) {
+function ComputerCheck({ onTry, onFinished, busy }: { onTry: () => void; onFinished: () => void; busy: boolean }) {
   const [st, setSt] = useState<CheckState>('idle');
   async function check() {
     setSt('checking');
@@ -179,8 +175,8 @@ function ComputerCheck({ onTry, busy }: { onTry: () => void; busy: boolean }) {
     available: { icon: CircleCheck, title: 'Ready', body: 'Gemini Nano is on this computer. The laptop reader will work.', cta: 'Try it on 6 real interviews' },
     downloadable: { icon: Download, title: 'Almost ready', body: 'Your computer can run it. Chrome downloads Gemini Nano (about 2 GB) the first time you start the laptop reader.', cta: 'Try it on 6 real interviews' },
     downloading: { icon: Download, title: 'Almost ready', body: 'Chrome is downloading Gemini Nano now (about 2 GB). The laptop reader works once it finishes.', cta: 'Try it on 6 real interviews' },
-    unavailable: { icon: CircleX, title: 'Not on this computer', body: 'Chrome needs about 22 GB of free disk space, and either a graphics card with more than 4 GB of memory or 16 GB of RAM. You can still use the cloud reader.', cta: 'Try it with the cloud reader', dark: true },
-    unsupported: { icon: CircleX, title: 'This browser can’t run it', body: 'The laptop reader needs Google Chrome on a laptop or desktop computer. You can still use the cloud reader here.', cta: 'Try it with the cloud reader', dark: true },
+    unavailable: { icon: CircleX, title: 'Not on this computer', body: 'Chrome needs about 22 GB of free disk space, and either a graphics card with more than 4 GB of memory or 16 GB of RAM. You can still use the cloud reader, or look through a study both readers have finished.', cta: 'See a finished study', dark: true },
+    unsupported: { icon: CircleX, title: 'This browser can’t run it', body: 'The laptop reader needs Google Chrome on a laptop or desktop computer. You can still use the cloud reader here, or look through a study both readers have finished.', cta: 'See a finished study', dark: true },
   };
   const a = answer[st];
   return (
@@ -191,7 +187,7 @@ function ComputerCheck({ onTry, busy }: { onTry: () => void; busy: boolean }) {
         <p>{a ? a.body : 'Find out in one click. Nothing to install: Chrome downloads Gemini Nano once (about 2 GB).'}</p>
       </div>
       {a ? (
-        <button className="ld-check-btn" onClick={onTry} disabled={busy}>{busy ? 'Loading…' : a.cta} <ArrowRight size={18} /></button>
+        <button className="ld-check-btn" onClick={a.dark ? onFinished : onTry} disabled={busy}>{busy ? 'Loading…' : a.cta} <ArrowRight size={18} /></button>
       ) : (
         <button className="ld-check-btn" onClick={check} disabled={st === 'checking'}>
           {st === 'checking' ? <><LoaderCircle size={18} className="spin" /> Checking…</> : <>Check my computer <ArrowRight size={18} /></>}
@@ -211,8 +207,19 @@ export function LandingPage() {
     setBusy(true);
     setErr('');
     try {
-      const existing = (await db.projects.toArray()).find((p) => p.isSample);
+      const existing = (await db.projects.toArray()).find((p) => p.isSample && p.id !== FINISHED_ID);
       navigate(`/p/${existing ? existing.id : await loadSampleProject()}`);
+    } catch (e) {
+      setErr(String(e));
+      setBusy(false);
+    }
+  }
+
+  async function seeFinished(page: 'agreement' | 'report' = 'agreement') {
+    setBusy(true);
+    setErr('');
+    try {
+      navigate(`/p/${await loadFinishedStudy()}/${page}`);
     } catch (e) {
       setErr(String(e));
       setBusy(false);
@@ -234,14 +241,14 @@ export function LandingPage() {
       <section className="ld-hero">
         <div className="ld-pitch">
           <span className="ld-eyebrow"><ShieldCheck size={16} /> For researchers whose ethics approval rules out cloud AI</span>
-          <h1>AI coding for interviews you can’t upload.</h1>
-          <p className="ld-sub">Gemini Nano codes the real transcripts on your laptop. The cloud only sees a copy with names hidden. Both are checked against your own coding.</p>
-          <div className="row" style={{ gap: 22, flexWrap: 'wrap' }}>
-            <button className="ld-cta" onClick={trySample} disabled={busy}>{busy ? 'Loading the interviews…' : 'Try it on 6 real interviews'} <ArrowRight size={18} /></button>
-            <Link className="ld-link strong" to="/studies">Start your own study</Link>
+          <h1>Tag themes in interviews you can’t upload.</h1>
+          <p className="ld-sub">Researchers call it coding. Gemini Nano does it on your laptop with the real transcripts; Gemini in the cloud only sees a copy with names hidden. Both are scored against your own coding.</p>
+          <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
+            <button className="ld-cta" onClick={trySample} disabled={busy}>{busy ? 'Loading…' : 'Try it on 6 real interviews'} <ArrowRight size={18} /></button>
+            <button className="ld-cta ghost" onClick={() => void seeFinished()} disabled={busy}>See a finished study</button>
           </div>
           {err && <div className="notice small">{err}</div>}
-          <span className="ld-fine">Free · no account · runs in Chrome</span>
+          <span className="ld-fine">Free · no account · runs in Chrome · <Link to="/studies">start your own study</Link></span>
         </div>
         <Demo />
       </section>
@@ -263,8 +270,22 @@ export function LandingPage() {
         })}
       </section>
 
+      <section className="ld-out">
+        <div className="ld-out-pages" aria-hidden="true">
+          <img className="back" src="/landing/report-page-1.webp" alt="" width={720} height={1019} loading="lazy" />
+          <img className="front" src="/landing/report-page-3.webp" alt="" width={720} height={1019} loading="lazy" />
+        </div>
+        <div className="ld-out-text">
+          <span className="ld-eyebrow"><ChartColumn size={16} /> What you hand in</span>
+          <h2>A findings report your supervisor can check.</h2>
+          <p>Themes with quotes, agreement for every code with each reader, how the data moved, and a COREQ checklist. As a Word file or PDF.</p>
+          <p className="small muted">The pages shown come from the finished example: the readers’ real results on six public interviews, scored against the QualPair team’s own coding.</p>
+          <button className="ld-cta ghost" style={{ alignSelf: 'flex-start' }} onClick={() => void seeFinished('report')} disabled={busy}>Open this report <ArrowRight size={18} /></button>
+        </div>
+      </section>
+
       <div className="ld-check-wrap">
-        <ComputerCheck onTry={trySample} busy={busy} />
+        <ComputerCheck onTry={trySample} onFinished={() => void seeFinished()} busy={busy} />
       </div>
 
       <footer className="ld-foot">

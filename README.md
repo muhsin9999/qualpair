@@ -18,6 +18,8 @@ Every AI call is logged (time, where it ran, model, prompt version); cloud calls
 
 **Live:** https://pilot-375c7.web.app · built for the Firebase #BuildHybridAI hackathon (2026).
 
+**Two ways to look:** *Try it on 6 real interviews* starts a fresh copy of the sample study so you can run both readers yourself. *See a finished study* opens the same interviews after a real run (22 Nov 2026): the sample coded by the QualPair team, all 263 paragraphs coded by Gemini Nano in Chrome and by gemini-3.5-flash-lite, so the agreement table, disagreements and report are there at once.
+
 ## How the hybrid AI is used
 
 - **Explicit modes, never "prefer".** Raw transcripts only ever go to `InferenceMode.ONLY_ON_DEVICE`; if Gemini Nano isn't available, the laptop reader refuses rather than falling back to the cloud.

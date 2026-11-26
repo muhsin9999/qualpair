@@ -7,6 +7,7 @@ import { PageHead, Track } from '../../app/ui';
 import { agreementByCode } from '../../services/results';
 import { kappaBand } from '../../domain/stats/agreement';
 import { SAMPLE_SOURCE } from '../../services/sample';
+import { FinishedNote } from '../../app/FinishedNote';
 
 function median(xs: number[]) {
   if (!xs.length) return null;
@@ -62,6 +63,7 @@ export default function OverviewPage() {
     <>
       <PageHead title={project.name} sub={project.researchQuestion || undefined} />
       <div className="work col">
+        <FinishedNote pid={project.id} />
         <div className="row" style={{ gap: 18, alignItems: 'stretch' }}>
           {readerCard('laptop', s.laptopDone, kl)}
           <div className="stack" style={{ width: 240, flex: 'none', background: 'var(--ink)', color: '#fff', borderRadius: 12, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>

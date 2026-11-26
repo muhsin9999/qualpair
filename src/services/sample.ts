@@ -1,3 +1,4 @@
+import { db } from '../db/db';
 import { createProject, importTranscript, newCode, saveCodebook } from './core';
 
 export const SAMPLE_SOURCE =
@@ -32,4 +33,26 @@ export async function loadSampleProject(): Promise<string> {
     SAMPLE_CODES.map(([name, definition, whenToUse, whenNotToUse, example], i) => newCode(name, i, { definition, whenToUse, whenNotToUse, example })),
   );
   return p.id;
+}
+
+/** The finished example: the same six interviews, already coded by the QualPair team and both real readers. */
+export const FINISHED_ID = '3814b55b-ecac-4630-b455-26fb1cdcc590';
+
+/**
+ * Load the finished example study (a real run from 22 Nov 2026: sample coded by the QualPair team,
+ * laptop reader = Gemini Nano in Chrome, cloud reader = gemini-3.5-flash-lite). Opens it again if already loaded.
+ */
+export async function loadFinishedStudy(): Promise<string> {
+  if (await db.projects.get(FINISHED_ID)) return FINISHED_ID;
+  const res = await fetch('/sample/finished.json');
+  if (!res.ok) throw new Error('Could not load the finished example.');
+  const file = (await res.json()) as { data: Record<string, unknown[]> };
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) {
+      const rows = file.data[t.name];
+      if (rows?.length) await t.bulkPut(rows as never[]);
+    }
+    await db.projects.update(FINISHED_ID, { updatedAt: Date.now() });
+  });
+  return FINISHED_ID;
 }

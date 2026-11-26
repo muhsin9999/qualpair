@@ -30,3 +30,6 @@ mockups/pen/*
 .wide-shot.mjs
 .ev-shot.mjs
 .narrow-shot.mjs
+.fin-shot.mjs
+.rp-shot.mjs
+.out-shot.mjs
