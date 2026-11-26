@@ -27,8 +27,8 @@ export default function ActivityPage() {
       <PageHead title="AI activity" sub="Every call to either reader, newest first. On-device calls store no text; cloud calls keep the exact text sent." />
       <div className="work col">
         <div className="row" style={{ gap: 12 }}>
-          <div className="card pad grow"><div className="row laptop" style={{ gap: 8 }}><Laptop size={16} /><strong style={{ fontSize: 22 }}>{rows.length - cloud.length}</strong></div><div className="small muted">calls on this computer</div></div>
-          <div className="card pad grow"><div className="row cloud" style={{ gap: 8 }}><Cloud size={16} /><strong style={{ fontSize: 22 }}>{cloud.length}</strong></div><div className="small muted">calls to the cloud · {(cloud.reduce((n, r) => n + r.bytesSent, 0) / 1024).toFixed(1)} KB sent</div></div>
+          <div className="card pad grow"><div className="row laptop" style={{ gap: 8 }}><Laptop size={16} /><strong style={{ fontSize: 22 }}>{rows.length - cloud.length}</strong></div><div className="small muted">{rows.length - cloud.length === 1 ? 'call' : 'calls'} on this computer</div></div>
+          <div className="card pad grow"><div className="row cloud" style={{ gap: 8 }}><Cloud size={16} /><strong style={{ fontSize: 22 }}>{cloud.length}</strong></div><div className="small muted">{cloud.length === 1 ? 'call' : 'calls'} to the cloud · {(cloud.reduce((n, r) => n + r.bytesSent, 0) / 1024).toFixed(1)} KB sent</div></div>
         </div>
         <div className="row" style={{ gap: 6 }}>
           {(['all', 'on_device', 'in_cloud'] as const).map((w) => (

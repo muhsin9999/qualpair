@@ -6,7 +6,7 @@ import { PageHead, Segmented } from '../../app/ui';
 import { db } from '../../db/db';
 import { formatKappa } from '../../domain/stats/agreement';
 import {
-  buildReport, dataFlowText, reportStyle, limitationsText, methodText, reportSettings, saveReportSettings, SECTIONS, summarySentences, type ReportData, type SectionId,
+  agreementNote, buildReport, dataFlowText, pl, reportStyle, limitationsText, methodText, reportSettings, saveReportSettings, SECTIONS, summarySentences, type ReportData, type SectionId,
 } from '../../services/report';
 import { downloadBlob, downloadText, qdcXml, toCsv } from '../../services/export';
 import { PagedPreview } from './PagedPreview';
@@ -44,7 +44,7 @@ function Section({ id, d, accent }: { id: SectionId; d: ReportData; accent: stri
           <h1>{d.settings.title}</h1>
           {d.settings.subtitle && <div style={{ font: '14px var(--read)', color: '#414042' }}>{d.settings.subtitle}</div>}
           <div style={{ font: '10px var(--ui)', color: '#707071', margin: '6px 0 10px' }}>
-            {[d.settings.author || 'Author name', d.settings.institution || 'Institution', new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })].join(' · ')}
+            {[d.settings.author, d.settings.institution, new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })].filter(Boolean).join(' · ')}
           </div>
           <div style={{ borderTop: '1px solid #E3E3E3', paddingTop: 8 }}>
             <h2 style={{ marginTop: 4 }}>{d.settings.template === 'apa' ? 'Summary' : 'Key findings'}</h2>
@@ -69,7 +69,7 @@ function Section({ id, d, accent }: { id: SectionId; d: ReportData; accent: stri
         <div>
           <div className="fig-num">Figure 1</div><div className="fig-title">Number of Participants Who Discussed Each Theme</div>
           <Svg svg={prevalenceSvg(d.themes, N, d.settings.highlightCodeId, accent)} />
-          <div className="note"><i>Note.</i> Counts show participants (n = {N}) with at least one paragraph coded to each theme after disagreements were resolved.{d.themes.some((t) => t.heldBack) ? ` ${d.themes.filter((t) => t.heldBack).map((t) => `“${t.code.name}”`).join(', ')} not shown: agreement was below the pass mark (κ < ${d.threshold.toFixed(2)}).` : ''} Source: QualPair analysis of {N} interview transcripts.</div>
+          <div className="note"><i>Note.</i> Counts show participants (n = {N}) with at least one paragraph coded to each theme after disagreements were resolved.{d.themes.some((t) => t.heldBack) ? ` ${d.themes.filter((t) => t.heldBack).map((t) => `“${t.code.name}”`).join(', ')} not shown: agreement was below the pass mark (κ < ${d.threshold.toFixed(2)}).` : ''} Source: QualPair analysis of {pl(N, 'interview transcript')}.</div>
         </div>
       );
     case 'themes':
@@ -90,8 +90,8 @@ function Section({ id, d, accent }: { id: SectionId; d: ReportData; accent: stri
         <div>
           <div className="fig-num">Table 3</div><div className="fig-title">Intercoder Agreement by Code</div>
           <table className="apa"><thead><tr><th>Code</th><th className="num">n</th><th className="num">Agreement</th><th className="num">κ R–L</th><th className="num">κ R–C</th></tr></thead>
-            <tbody>{rows.map((r) => <tr key={r.code.id}><td>{r.code.name}</td><td className="num">{r.nLaptop || r.nCloud}</td><td className="num">{r.laptop ? `${Math.round(r.laptop.po * 100)}%` : '—'}</td><td className="num">{r.insufficient ? '—' : cell(r.laptop?.kappa)}</td><td className="num">{r.insufficient ? '—' : cell(r.cloud?.kappa)}</td></tr>)}</tbody></table>
-          <div className="note"><i>Note.</i> R = researcher; L = laptop reader (Gemini Nano, on device); C = cloud reader. n = paragraphs in the researcher’s sample. Agreement = observed agreement, researcher vs laptop reader. — = not measurable (the researcher used the code in all or none of the sample). <sup>a</sup> Below the pass mark of κ = {d.threshold.toFixed(2)}, set before coding.</div>
+            <tbody>{rows.map((r) => <tr key={r.code.id}><td>{r.code.name}</td><td className="num">{r.nLaptop || r.nCloud}</td><td className="num">{(r.laptop ?? r.cloud) ? `${Math.round((r.laptop ?? r.cloud)!.po * 100)}%` : '—'}</td><td className="num">{r.insufficient ? '—' : cell(r.laptop?.kappa)}</td><td className="num">{r.insufficient ? '—' : cell(r.cloud?.kappa)}</td></tr>)}</tbody></table>
+          <div className="note"><i>Note.</i> {agreementNote(d)}</div>
         </div>
       );
     }
@@ -100,7 +100,7 @@ function Section({ id, d, accent }: { id: SectionId; d: ReportData; accent: stri
         <div>
           <div className="fig-num">Figure 2</div><div className="fig-title">Agreement Between Each AI Reader and the Researcher, by Code (Cohen’s κ)</div>
           <Svg svg={agreementSvg(d.agreement, d.threshold)} />
-          <div className="note"><i>Note.</i> Computed on {d.humanDone} paragraphs coded by the researcher, before disagreements were resolved. The dashed line marks the pass mark, set before coding began.</div>
+          <div className="note"><i>Note.</i> Computed on {pl(d.humanDone, 'paragraph')} coded by the researcher, before disagreements were resolved. The dashed line marks the pass mark, fixed when the sample was drawn.</div>
         </div>
       );
     case 'limits':

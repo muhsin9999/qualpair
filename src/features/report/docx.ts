@@ -2,7 +2,7 @@ import {
   AlignmentType, BorderStyle, Document, HeadingLevel, ImageRun, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType,
 } from 'docx';
 import { formatKappa } from '../../domain/stats/agreement';
-import { dataFlowText, limitationsText, methodText, reportStyle, summarySentences, type ReportData, type SectionId } from '../../services/report';
+import { agreementNote, dataFlowText, limitationsText, methodText, pl, reportStyle, summarySentences, type ReportData, type SectionId } from '../../services/report';
 import { agreementSvg, matrixSvg, prevalenceSvg, svgToPng, ACCENTS } from './figures';
 import { coreqRows } from './coreq';
 
@@ -79,12 +79,12 @@ export async function buildDocx(d: ReportData, order: SectionId[]): Promise<Blob
       kids.push(...caption('Table', '3', 'Intercoder Agreement by Code'));
       const rows = d.agreement.slice().sort((a, b) => Math.min(a.laptop?.kappa ?? 1, a.cloud?.kappa ?? 1) - Math.min(b.laptop?.kappa ?? 1, b.cloud?.kappa ?? 1));
       const mark = (k: number | null | undefined) => (k == null ? '—' : `${formatKappa(k)}${k < d.threshold ? 'ᵃ' : ''}`);
-      kids.push(apaTable(['Code', 'n', 'Agreement (L)', 'κ R–L', 'κ R–C'], rows.map((r) => [r.code.name, String(r.nLaptop || r.nCloud), r.laptop ? `${Math.round(r.laptop.po * 100)}%` : '—', r.insufficient ? '—' : mark(r.laptop?.kappa), r.insufficient ? '—' : mark(r.cloud?.kappa)]), [1, 2, 3, 4]));
-      kids.push(p(`Note. R = researcher; L = laptop reader (Gemini Nano, on device); C = cloud reader. n = paragraphs in the researcher’s sample. Sorted from weakest agreement. — = not measurable because the researcher used the code in all or none of the sample. ᵃ Below the pass mark of κ = ${d.threshold.toFixed(2)}, set before coding.`, { size: S(18) }));
+      kids.push(apaTable(['Code', 'n', d.readers.laptop ? 'Agreement (L)' : 'Agreement (C)', 'κ R–L', 'κ R–C'], rows.map((r) => [r.code.name, String(r.nLaptop || r.nCloud), (r.laptop ?? r.cloud) ? `${Math.round((r.laptop ?? r.cloud)!.po * 100)}%` : '—', r.insufficient ? '—' : mark(r.laptop?.kappa), r.insufficient ? '—' : mark(r.cloud?.kappa)]), [1, 2, 3, 4]));
+      kids.push(p(`Note. ${agreementNote(d)}`, { size: S(18) }));
     } else if (id === 'fig-agreement') {
       kids.push(...caption('Figure', '2', 'Agreement Between Each AI Reader and the Researcher, by Code (Cohen’s κ)'));
       kids.push(await figure(agreementSvg(d.agreement, d.threshold, 560)));
-      kids.push(p(`Note. Agreement was computed on ${d.humanDone} paragraphs coded by the researcher, before disagreements were resolved. The dashed line marks the pass mark, set before coding began.`, { size: S(18) }));
+      kids.push(p(`Note. Agreement was computed on ${pl(d.humanDone, 'paragraph')} coded by the researcher, before disagreements were resolved. The dashed line marks the pass mark, fixed when the sample was drawn.`, { size: S(18) }));
     } else if (id === 'limits') {
       kids.push(p('Limitations', { bold: true, size: S(26) }));
       kids.push(p(limitationsText(d)));

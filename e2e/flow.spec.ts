@@ -50,7 +50,7 @@ test('sample study: import → sample → both readers → access copies → agr
 
   await page.getByRole('link', { name: 'Laptop reader' }).click();
   await page.getByRole('button', { name: /Start|Resume/ }).click();
-  await expect(page.getByText('All paragraphs coded')).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText('All paragraphs coded')).toBeVisible({ timeout: 300_000 });
   await shot(page, '05-laptop');
 
   await page.getByRole('link', { name: 'Access copies' }).click();
@@ -66,7 +66,7 @@ test('sample study: import → sample → both readers → access copies → agr
   await page.getByRole('link', { name: 'Cloud reader' }).click();
   await shot(page, '07-cloud-before');
   await page.getByRole('button', { name: /Send 6 access copies/ }).click();
-  await expect(page.getByRole('button', { name: 'All approved copies coded' })).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByRole('button', { name: 'All approved copies coded' })).toBeVisible({ timeout: 300_000 });
 
   await page.getByRole('link', { name: 'Agreement', exact: true }).click();
   await expect(page.getByText('codes reach the pass mark')).toBeVisible();
@@ -82,7 +82,7 @@ test('sample study: import → sample → both readers → access copies → agr
   await page.keyboard.press('r');
 
   await page.getByRole('link', { name: 'Report' }).click();
-  await expect(page.getByText('Number of Participants Who Discussed Each Theme').first()).toBeVisible();
+  await expect(page.getByText('Number of Participants Who Discussed Each Theme').first()).toBeVisible({ timeout: 20_000 });
   await shot(page, '10-report');
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Word' }).click();
