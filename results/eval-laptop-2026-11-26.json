@@ -1,0 +1,102 @@
+{
+  "dataset": "le-foll-2025",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36",
+  "results": [
+    {
+      "reader": "laptop",
+      "model": "Gemini Nano (Chrome, on device)",
+      "n": 200,
+      "seconds": 3275.3972999999523,
+      "perCode": [
+        {
+          "code": "open data",
+          "refPositives": 29,
+          "kappa": 0.47080613864879156,
+          "ac1": 0.7910281415436055,
+          "po": 0.85
+        },
+        {
+          "code": "open/closed access publishing",
+          "refPositives": 15,
+          "kappa": 0.16926272066459008,
+          "ac1": 0.7390566899341119,
+          "po": 0.8
+        },
+        {
+          "code": "resistance/reasons not to do OS",
+          "refPositives": 20,
+          "kappa": 0.2812500000000002,
+          "ac1": 0.8631461509854965,
+          "po": 0.885
+        },
+        {
+          "code": "(lack of) incentives/motivation",
+          "refPositives": 12,
+          "kappa": 0.23469387755102014,
+          "ac1": 0.8578956717390017,
+          "po": 0.88
+        },
+        {
+          "code": "courses/training/coaching/curriculum",
+          "refPositives": 9,
+          "kappa": 0.5913363302002451,
+          "ac1": 0.943081564118618,
+          "po": 0.95
+        },
+        {
+          "code": "open code/method/tools",
+          "refPositives": 11,
+          "kappa": 0.19265033407572366,
+          "ac1": 0.8240317956341682,
+          "po": 0.855
+        },
+        {
+          "code": "funding/funders",
+          "refPositives": 3,
+          "kappa": 0.06250000000000099,
+          "ac1": 0.8822358367564385,
+          "po": 0.895
+        },
+        {
+          "code": "community building/networking",
+          "refPositives": 3,
+          "kappa": 0.3593850096092248,
+          "ac1": 0.9458405545927209,
+          "po": 0.95
+        },
+        {
+          "code": "open education",
+          "refPositives": 7,
+          "kappa": 0.38712972420837594,
+          "ac1": 0.9684625492772667,
+          "po": 0.97
+        },
+        {
+          "code": "academic culture",
+          "refPositives": 5,
+          "kappa": 0.05498281786941585,
+          "ac1": 0.6291363935200013,
+          "po": 0.725
+        },
+        {
+          "code": "generational gap",
+          "refPositives": 3,
+          "kappa": 0.2022792022792018,
+          "ac1": 0.923417756140255,
+          "po": 0.93
+        },
+        {
+          "code": "pre-registration",
+          "refPositives": 6,
+          "kappa": 0.6527777777777776,
+          "ac1": 0.9671790383458235,
+          "po": 0.97
+        }
+      ],
+      "macroKappa": 0.3049211610736973,
+      "prompts": [
+        "device-code-s1@1"
+      ]
+    }
+  ]
+}

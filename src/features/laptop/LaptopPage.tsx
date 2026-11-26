@@ -96,7 +96,7 @@ export default function LaptopPage() {
   if (done >= total && total) title = 'All paragraphs coded';
   else if (warming) {
     title = reader.isPractice ? 'Starting' : 'Loading Gemini Nano';
-    if (!reader.isPractice) sub = 'The first paragraph takes about a minute while the model loads. After that, a few seconds each.';
+    if (!reader.isPractice) sub = 'The first paragraph takes about a minute while the model loads. After that, about 5–20 seconds each, depending on the computer.';
   } else if (running) {
     title = `Coding interview ${tIndex} of ${transcripts?.length ?? 0}`;
     sub = `Reading paragraph ${(done + 1).toLocaleString()} · ${elapsed}. You can keep working elsewhere in the app.`;

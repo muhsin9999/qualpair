@@ -34,7 +34,9 @@ Le Foll (2025), *Semi-structured interviews with linguists about Open Science* (
 | Reader | Units | Macro κ | Time |
 |---|---|---|---|
 | Cloud reader (gemini-3.5-flash-lite) | 200 | **0.46** (moderate) | 0.2 s per unit (batched) |
-| Laptop reader (Gemini Nano) | — | *to be measured in Chrome* | ~5 s per unit after a one-off ~1 min load |
+| Laptop reader (Gemini Nano, Chrome 158 on a Windows laptop) | 200 | **0.30** (fair) | 16.4 s per unit, after a one-off ~1 min load |
+
+Both runs use the same 200 units. The cloud reader clears the 0.40 "useful first pass" line we set in advance; the laptop reader does not on this dataset (per code it ranges from κ 0.05 to 0.65). That gap is the reason QualPair scores each reader against the researcher's own sample and holds back codes below the pass mark, instead of trusting either reader by default.
 
 Per-code results are in `results/`. Run it yourself at `/eval`.
 

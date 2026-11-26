@@ -49,6 +49,37 @@ function ResultTable({ r, note }: { r: Result; note?: string }) {
   );
 }
 
+/** Both saved readers side by side, code by code, on the same units. */
+function CompareTable({ laptop, cloud }: { laptop: Result; cloud: Result }) {
+  const lk = new Map(laptop.perCode.map((p) => [p.code, p]));
+  return (
+    <div className="table-wrap">
+      <div className="row" style={{ padding: '12px 14px', background: 'var(--page)', borderBottom: '1px solid var(--rule)' }}>
+        <strong className="spacer">Code by code, same {cloud.n} units</strong>
+        <span className="small muted">The higher κ for each code is in bold</span>
+      </div>
+      <table className="table">
+        <thead><tr><th>Code</th><th>Reference uses</th><th style={{ color: 'var(--laptop)' }}>Laptop κ</th><th style={{ color: 'var(--cloud)' }}>Cloud κ</th></tr></thead>
+        <tbody>
+          {cloud.perCode.map((c) => {
+            const l = lk.get(c.code);
+            const lv = l?.kappa ?? null, cv = c.kappa;
+            const lBest = lv !== null && cv !== null && lv > cv, cBest = lv !== null && cv !== null && cv > lv;
+            return (
+              <tr key={c.code}>
+                <td>{c.code}</td>
+                <td className="muted">{c.refPositives}</td>
+                <td style={{ fontWeight: lBest ? 800 : 400 }}>{formatKappa(lv)} <span className="tiny faint" style={{ fontWeight: 400 }}>{kappaBand(lv)}</span></td>
+                <td style={{ fontWeight: cBest ? 800 : 400 }}>{formatKappa(cv)} <span className="tiny faint" style={{ fontWeight: 400 }}>{kappaBand(cv)}</span></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /**
  * Measures each reader against a published single-expert coding (Le Foll 2025, CC BY-SA 4.0).
  * Public, already-anonymised data, so the cloud reader may read it directly.
@@ -111,7 +142,10 @@ export default function EvalPage() {
     const old = SAVED.filter((r) => r.reader === k).at(-1);
     return old ? { r: old, when: `measured ${new Date(old.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` } : null;
   };
-  const minutes = Math.max(1, Math.round((n * 5 + 60) / 60));
+  // Time estimate from the last laptop run on record (seconds per unit), else a typical 16 s.
+  const lastLaptop = latest('laptop')?.r;
+  const perUnit = lastLaptop ? lastLaptop.seconds / lastLaptop.n : 16;
+  const minutes = Math.max(1, Math.round((n * perUnit + 60) / 60));
 
   return (
     <div className="main" style={{ minHeight: '100%' }}>
@@ -147,7 +181,12 @@ export default function EvalPage() {
           </div>
           <p className="small muted" style={{ margin: 0 }}>κ (Cohen’s kappa) is agreement beyond chance: 0.41–0.60 is moderate, 0.61–0.80 substantial. We decided before seeing any result that 0.40 counts as a useful first pass and 0.60 as good. The reference is one expert coder, not a gold standard.</p>
           {results.map((r) => <ResultTable key={r.reader} r={r} note="this run" />)}
-          {SAVED.map((r) => <ResultTable key={`${r.reader}-${r.date}`} r={r} note={`measured ${new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`} />)}
+          {(() => {
+            const l = SAVED.filter((r) => r.reader === 'laptop').at(-1);
+            const c = SAVED.filter((r) => r.reader === 'cloud').at(-1);
+            if (l && c && l.n === c.n) return <CompareTable laptop={l} cloud={c} />;
+            return SAVED.map((r) => <ResultTable key={`${r.reader}-${r.date}`} r={r} note={`measured ${new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`} />);
+          })()}
         </div>
 
         <aside className="ev-side card pad stack">
