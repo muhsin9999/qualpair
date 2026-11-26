@@ -60,7 +60,7 @@ function CodeDefinition({ code, at }: { code: Code; at: { top: number; right: nu
       <div className="row" style={{ gap: 8 }}><span className="cbar" style={{ background: codeColor(code) }} /><strong>{code.name}</strong></div>
       {code.definition.trim() && <p>{code.definition}</p>}
       {rows.filter(([, v]) => v.trim()).map(([k, v]) => (
-        <div key={k}><span className="def-k">{k}</span><p>{k === 'Example' ? `“${v.replace(/^["“]|["”]$/g, '')}”` : v}</p></div>
+        <div key={k}><span className="def-k">{k}</span><p>{k === 'Example' && !/[“”"]/.test(v) ? `“${v}”` : v}</p></div>
       ))}
     </div>,
     document.body,
@@ -191,7 +191,7 @@ export default function SamplePage() {
               {book.codes.map((c, i) => {
                 const on = picked.has(c.id);
                 return (
-                  <button key={c.id} className="row" data-code={c.id} onMouseEnter={(e) => showDef(c.id, e.currentTarget)} onFocus={(e) => showDef(c.id, e.currentTarget)} onBlur={() => setPeek(null)} onClick={() => setPicked((p) => { const x = new Set(p); if (on) x.delete(c.id); else x.add(c.id); return x; })}
+                  <button key={c.id} className="row" data-code={c.id} aria-pressed={on} onMouseEnter={(e) => showDef(c.id, e.currentTarget)} onFocus={(e) => showDef(c.id, e.currentTarget)} onBlur={() => setPeek(null)} onClick={() => setPicked((p) => { const x = new Set(p); if (on) x.delete(c.id); else x.add(c.id); return x; })}
                     style={{ width: '100%', border: 0, background: on ? 'var(--sel)' : 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', textAlign: 'left' }}>
                     <span style={{ width: 18, height: 18, borderRadius: 4, border: on ? 'none' : '1.5px solid var(--ink3)', background: on ? 'var(--ink)' : 'var(--page)', display: 'grid', placeItems: 'center', flex: 'none' }}>{on && <Check size={12} color="#fff" />}</span>
                     <span className="cbar" style={{ background: codeColor(c) }} />

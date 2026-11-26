@@ -180,6 +180,7 @@ export default function EvalPage() {
             })}
           </div>
           <p className="small muted" style={{ margin: 0 }}>κ (Cohen’s kappa) is agreement beyond chance: 0.41–0.60 is moderate, 0.61–0.80 substantial. We decided before seeing any result that 0.40 counts as a useful first pass and 0.60 as good. The reference is one expert coder, not a gold standard.</p>
+          <p className="small" style={{ margin: 0 }}><strong>Why the laptop reader scores lower:</strong> Gemini Nano is a small model (about 2 GB) built to run on a laptop, so it misses more than the cloud model; on this dataset it falls below our own 0.40 line, though it beats the cloud reader on some codes. That is why QualPair never trusts either reader by default: you code a sample yourself, each reader is scored against you code by code, and codes below your pass mark stay out of the findings.</p>
           {results.map((r) => <ResultTable key={r.reader} r={r} note="this run" />)}
           {(() => {
             const l = SAVED.filter((r) => r.reader === 'laptop').at(-1);

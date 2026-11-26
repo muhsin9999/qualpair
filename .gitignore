@@ -11,10 +11,9 @@ playwright-report/
 .claude/
 coverage/
 *.tsbuildinfo
-mockups/*
-!mockups/pen/
-mockups/pen/*
-!mockups/pen/v3/
+# Planning, research, design mockups and submission drafts stay local
+mockups/
+tools/plan-to-html.py
 .rep-shot.mjs
 .rep-dbg.mjs
 .rep-pdf.mjs
@@ -34,3 +33,4 @@ mockups/pen/*
 .rp-shot.mjs
 .out-shot.mjs
 .rep-chk.mjs
+.rp-all.mjs

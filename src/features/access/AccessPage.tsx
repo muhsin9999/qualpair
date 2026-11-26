@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Check, ChevronLeft, ChevronRight, Cloud, EyeOff, Laptop, LoaderCircle, Lock, Plus, X } from 'lucide-react';
 import { db } from '../../db/db';
 import { usePid, useProject, useTranscripts } from '../../app/hooks';
@@ -93,11 +94,12 @@ export default function AccessPage() {
   const [err, setErr] = useState('');
   const [sel, setSel] = useState<{ text: string; x: number; y: number; below?: boolean } | null>(null);
   const [checked, setChecked] = useState<{ tid: string; text: string } | null>(null);
-  const [laptopOk, setLaptopOk] = useState<boolean | null>(null);
+  // 'ready': Gemini Nano can run now; 'download': this computer can run it once it's downloaded; 'no': it can't run here.
+  const [laptop, setLaptop] = useState<'ready' | 'download' | 'no' | null>(null);
   useEffect(() => {
     const r = getDeviceReader();
-    if (r.isPractice) setLaptopOk(true);
-    else void r.status().then((st) => setLaptopOk(st === 'available' || st === 'downloadable' || st === 'downloading'));
+    if (r.isPractice) setLaptop('ready');
+    else void r.status().then((st) => setLaptop(st === 'available' ? 'ready' : st === 'downloadable' || st === 'downloading' ? 'download' : 'no'));
   }, []);
   const [newKind, setNewKind] = useState<Kind>('person');
   const closeSel = useCallback(() => setSel(null), []);
@@ -250,8 +252,10 @@ export default function AccessPage() {
               </div>
             ))}
             {pending.length > 0 && <span className="tiny attn">Decide each one before approving.</span>}
-            {laptopOk === false ? (
+            {laptop === 'no' ? (
               <span className="small">The laptop reader isn’t available in this browser, so <strong>names and places are not found automatically</strong>. Select them in the original, or type them under Always hide.</span>
+            ) : laptop === 'download' ? (
+              <span className="small">Gemini Nano isn’t downloaded yet. <Link to="../laptop">Download it on the Laptop reader page</Link> (about 2 GB, once), then come back to check this interview. Until then, select names in the original or type them under Always hide.</span>
             ) : (
               <>
                 {!pending.length && !busy && !(checked && checked.tid === t.id) && <span className="small faint">The rules above don’t know people’s names. Ask the laptop reader to look for names and places. It runs on this computer.</span>}

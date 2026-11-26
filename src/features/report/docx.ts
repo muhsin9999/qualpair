@@ -2,7 +2,7 @@ import {
   AlignmentType, BorderStyle, Document, HeadingLevel, ImageRun, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType,
 } from 'docx';
 import { formatKappa } from '../../domain/stats/agreement';
-import { agreementNote, dataFlowText, limitationsText, methodText, pl, reportStyle, summarySentences, type ReportData, type SectionId } from '../../services/report';
+import { agreementNote, dataFlowText, heldBackIds, limitationsText, matrixNote, methodText, pl, reportStyle, summarySentences, type ReportData, type SectionId } from '../../services/report';
 import { agreementSvg, matrixSvg, prevalenceSvg, svgToPng, ACCENTS } from './figures';
 import { coreqRows } from './coreq';
 
@@ -98,7 +98,8 @@ export async function buildDocx(d: ReportData, order: SectionId[]): Promise<Blob
     } else if (id === 'app-matrix') {
       kids.push(p('Appendix B. Codes by Participant', { bold: true, size: S(26) }));
       kids.push(...caption('Figure', 'B1', 'Paragraphs Coded to Each Theme, by Participant'));
-      kids.push(await figure(matrixSvg(d.themes.map((t) => t.code), d.participants.map((x) => x.label), d.matrix, 560)));
+      kids.push(await figure(matrixSvg(d.themes.map((t) => t.code), d.participants.map((x) => x.label), d.matrix, 560, heldBackIds(d))));
+      kids.push(p(`Note. ${matrixNote(d)}`, { size: S(18) }));
     } else if (id === 'app-coreq') {
       kids.push(p('Appendix C. COREQ Items (Analysis and Findings)', { bold: true, size: S(26) }));
       kids.push(apaTable(['COREQ item', 'Answer'], coreqRows(d).map((r) => [`${r.no}. ${r.item}`, r.answer])));

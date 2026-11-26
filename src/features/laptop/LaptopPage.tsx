@@ -92,7 +92,7 @@ export default function LaptopPage() {
   const warming = running && isWarmingUp(run);
   const elapsed = formatElapsed(currentElapsed(run));
   let title = canStart ? 'Ready to code' : status === null ? 'Checking this computer…' : 'Waiting for the model';
-  let sub = canStart ? 'Each finished paragraph is saved, so you can pause any time.' : status === 'downloadable' || status === 'downloading' ? 'Download Gemini Nano above first. Then press Start.' : 'The laptop reader needs Gemini Nano in Chrome.';
+  let sub = canStart ? 'Each finished paragraph is saved, so you can pause any time.' : status === 'downloadable' || status === 'downloading' ? 'Download Gemini Nano in the panel on the right first. Then press Start.' : 'The laptop reader needs Gemini Nano in Chrome.';
   if (done >= total && total) title = 'All paragraphs coded';
   else if (warming) {
     title = reader.isPractice ? 'Starting' : 'Loading Gemini Nano';

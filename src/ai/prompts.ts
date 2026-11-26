@@ -210,5 +210,11 @@ export function checkEvidence(evidence: unknown, text: string): string | undefin
 /** Parse model JSON output, tolerating code fences. */
 export function parseJson<T>(raw: string): T {
   const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
-  return JSON.parse(cleaned) as T;
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    // Some browsers answer in plain text (for example when the model isn't ready). Say so plainly.
+    const start = raw.trim().slice(0, 80);
+    throw new Error(`The model replied with text instead of a result (“${start}${raw.trim().length > 80 ? '…' : ''}”). If Gemini Nano isn’t downloaded yet, download it on the Laptop reader page first.`);
+  }
 }

@@ -270,6 +270,17 @@ export function dataFlowText(d: ReportData): string {
   ].join(' ');
 }
 
+/** Codes held back from the findings because a reader agreed with the researcher below the pass mark. */
+export function heldBackIds(d: ReportData): Set<string> {
+  return new Set(d.themes.filter((t) => t.heldBack).map((t) => t.code.id));
+}
+
+/** Note under Figure B1. */
+export function matrixNote(d: ReportData): string {
+  const low = d.themes.filter((t) => t.heldBack).map((t) => `“${t.code.name}”`);
+  return `Shading shows how many paragraphs of each participant’s interview were coded to each theme after disagreements were resolved; the number on the right is the total.${low.length ? ` ᵃ Below the pass mark of κ = ${d.threshold.toFixed(2)} (${low.join(', ')}): shown here for completeness, not reported in Figure 1 or Table 2.` : ''}`;
+}
+
 /** Footnote for the agreement table: says why a cell is empty, in this study. */
 export function agreementNote(d: ReportData): string {
   const why = [

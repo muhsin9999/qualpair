@@ -60,6 +60,8 @@ export function agreement(x: readonly boolean[], y: readonly boolean[]): Agreeme
 /** Landis & Koch (1977) bands, the labels most researchers recognise. */
 export function kappaBand(k: number | null): string {
   if (k === null) return 'undefined';
+  // Band the value as it is shown (two decimals), so "0.40" is never labelled "moderate".
+  k = Math.round(k * 100) / 100;
   if (k < 0) return 'poor';
   if (k <= 0.2) return 'slight';
   if (k <= 0.4) return 'fair';

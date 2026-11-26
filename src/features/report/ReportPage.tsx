@@ -6,7 +6,7 @@ import { PageHead, Segmented } from '../../app/ui';
 import { db } from '../../db/db';
 import { formatKappa } from '../../domain/stats/agreement';
 import {
-  agreementNote, buildReport, dataFlowText, pl, reportStyle, limitationsText, methodText, reportSettings, saveReportSettings, SECTIONS, summarySentences, type ReportData, type SectionId,
+  agreementNote, buildReport, dataFlowText, heldBackIds, matrixNote, pl, reportStyle, limitationsText, methodText, reportSettings, saveReportSettings, SECTIONS, summarySentences, type ReportData, type SectionId,
 } from '../../services/report';
 import { downloadBlob, downloadText, qdcXml, toCsv } from '../../services/export';
 import { PagedPreview } from './PagedPreview';
@@ -120,7 +120,8 @@ function Section({ id, d, accent }: { id: SectionId; d: ReportData; accent: stri
         <div>
           <h2>Appendix B. Codes by participant</h2>
           <div className="fig-num">Figure B1</div><div className="fig-title">Paragraphs Coded to Each Theme, by Participant</div>
-          <Svg svg={matrixSvg(d.themes.map((t) => t.code), d.participants.map((x) => x.label), d.matrix)} />
+          <Svg svg={matrixSvg(d.themes.map((t) => t.code), d.participants.map((x) => x.label), d.matrix, 520, heldBackIds(d))} />
+          <div className="note"><i>Note.</i> {matrixNote(d)}</div>
         </div>
       );
     case 'app-coreq':
@@ -166,7 +167,7 @@ export default function ReportPage() {
   const figSvg = (id: SectionId) =>
     id === 'fig-prevalence' ? prevalenceSvg(d.themes, d.participants.length, settings.highlightCodeId, accent, 640)
       : id === 'fig-agreement' ? agreementSvg(d.agreement, d.threshold, 640)
-        : matrixSvg(d.themes.map((t) => t.code), d.participants.map((x) => x.label), d.matrix, 640);
+        : matrixSvg(d.themes.map((t) => t.code), d.participants.map((x) => x.label), d.matrix, 640, heldBackIds(d));
   const figCsv = (id: SectionId) =>
     id === 'fig-prevalence' ? toCsv([['theme', 'participants', 'paragraphs'], ...d.themes.map((t) => [t.code.name, t.participants, t.paragraphs])])
       : id === 'fig-agreement' ? toCsv([['code', 'n', 'kappa_laptop', 'kappa_cloud', 'kappa_laptop_cloud'], ...d.agreement.map((a) => [a.code.name, a.nLaptop, a.laptop?.kappa ?? '', a.cloud?.kappa ?? '', a.laptopVsCloud?.kappa ?? ''])])

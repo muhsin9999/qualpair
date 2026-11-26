@@ -54,7 +54,8 @@ ${c != null ? `<circle cx="${x(c)}" cy="${y}" r="5" fill="#3F5F8F"/>` : ''}`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${h + 6}" width="${width}" height="${h + 6}" ${FONT}>${grid}${th}${dots}${legend}</svg>`;
 }
 
-export function matrixSvg(codes: Code[], labels: string[], matrix: Map<string, Map<string, number>>, width = 520): string {
+/** `marked`: codes below the pass mark, drawn with a superscript a and lighter text. */
+export function matrixSvg(codes: Code[], labels: string[], matrix: Map<string, Map<string, number>>, width = 520, marked: Set<string> = new Set()): string {
   const labelW = 150;
   const cols = labels.length;
   const cellW = Math.min(36, (width - labelW - 40) / Math.max(1, cols));
@@ -67,12 +68,19 @@ export function matrixSvg(codes: Code[], labels: string[], matrix: Map<string, M
       const m = matrix.get(c.id) ?? new Map();
       const total = [...m.values()].reduce((a, b) => a + b, 0);
       const cells = labels.map((l, i) => `<rect x="${labelW + i * cellW + 1}" y="${top + r * cellH + 1}" width="${cellW - 2}" height="${cellH - 2}" fill="${shade(m.get(l) ?? 0)}"/>`).join('');
-      return `<text x="${labelW - 8}" y="${top + r * cellH + 13}" text-anchor="end" font-size="10.5" fill="#414042">${esc(c.name)}</text>${cells}<text x="${labelW + cols * cellW + 6}" y="${top + r * cellH + 13}" font-size="10" fill="#222">${total}</text>`;
+      const low = marked.has(c.id);
+      return `<text x="${labelW - 8}" y="${top + r * cellH + 13}" text-anchor="end" font-size="10.5" fill="${low ? '#8A8A8A' : '#414042'}">${esc(c.name)}${low ? '<tspan baseline-shift="super" font-size="7">a</tspan>' : ''}</text>${cells}<text x="${labelW + cols * cellW + 6}" y="${top + r * cellH + 13}" font-size="10" fill="#222">${total}</text>`;
     })
     .join('');
   const ly = top + codes.length * cellH + 16;
-  const legend = [['0', '#F1EFEA'], ['1', '#C9C9C9'], ['2–3', '#8A8A8A'], ['4+', '#333333']]
-    .map(([t, f], i) => `<rect x="${labelW + i * 70}" y="${ly - 9}" width="12" height="12" fill="${f}"/><text x="${labelW + i * 70 + 16}" y="${ly + 1}" font-size="10" fill="#414042">${t} paragraphs</text>`)
+  // Lay the legend out by text length so labels never run into the next swatch.
+  let lx = Math.max(0, labelW - 120);
+  const legend = [['0 paragraphs', '#F1EFEA'], ['1 paragraph', '#C9C9C9'], ['2–3 paragraphs', '#8A8A8A'], ['4+ paragraphs', '#333333']]
+    .map(([t, f]) => {
+      const item = `<rect x="${lx}" y="${ly - 9}" width="12" height="12" fill="${f}"/><text x="${lx + 16}" y="${ly + 1}" font-size="10" fill="#414042">${t}</text>`;
+      lx += 16 + t!.length * 5.6 + 16;
+      return item;
+    })
     .join('');
   const h = ly + 8;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${h}" width="${width}" height="${h}" ${FONT}>${head}${body}${legend}</svg>`;
