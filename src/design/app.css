@@ -562,3 +562,52 @@ mark.q { background: rgb(201 138 30 / 0.22); box-shadow: inset 0 -2.5px 0 var(--
 .btn.danger:hover { background: #8a3423; border-color: #8a3423; }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
 .name-dialog[open] { animation: dialog-in .14s ease-out; }
+
+/* ---------- Narrow screens (phones, small tablets) ---------- */
+/* Wide tables scroll inside their frame instead of being cut off. */
+.table-wrap { overflow-x: auto; overscroll-behavior-x: contain; }
+.st-flag { width: 250px; }
+@media (max-width: 900px) {
+  /* Panels stack in one column, each at full width (overrides desktop side-panel widths). */
+  .work > * { width: auto !important; max-width: 100%; min-width: 0; }
+  .ov-trio { flex-wrap: wrap; }
+  .ov-trio > * { flex: 1 1 220px; }
+}
+@media (max-width: 760px) {
+  .page-head { flex-wrap: wrap; gap: 10px; padding: 16px 16px 0; }
+  .page-head .titles { flex: 1 1 100%; }
+  .page-head h1 { font-size: 22px; line-height: 1.25; }
+  .page-head > :not(.titles) { flex: none; }
+
+  .ov-trio { flex-direction: column; }
+  .ov-trio > * { flex: none; }
+  .ov-you { padding: 16px !important; }
+
+  .table.wide { min-width: 660px; }
+  .table.wide td:nth-child(3) { min-width: 230px; }
+  .table-wrap .table td:first-child { white-space: nowrap; }
+  .table-wrap .table th:first-child, .table-wrap .table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--page); box-shadow: 1px 0 0 var(--rule); }
+  .table-wrap .table th:first-child { background: var(--side); }
+  .table-wrap .table tr.sel td:first-child { background: var(--sel); }
+
+  /* Access copies: original above what the cloud reader sees, each labelled. */
+  .work.pane > .paper { padding: 0 16px 16px !important; }
+  .pane-head { display: none !important; }
+  .acc-row { flex-direction: column; gap: 6px !important; }
+  .acc-row > div { width: 100%; }
+  .acc-row > div::before { content: attr(data-label); display: block; font: 700 11px var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 2px; }
+  .acc-row > .acc-copy::before { color: var(--cloud); }
+
+  /* Disagreements: only the paragraph being decided, its code tag above the text. */
+  .doc { padding: 16px; }
+  .rv-doc .para.ctx { display: none; }
+  .rv-doc .para { grid-template-columns: 22px minmax(0, 1fr); padding: 12px 8px; }
+  .rv-doc .para-tag { grid-column: 1 / -1; grid-row: 1; width: auto !important; padding-top: 0 !important; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 14px !important; }
+  .rv-doc .para > .ln, .rv-doc .para > div:not(.para-tag) { grid-row: 2; }
+  .para.cur .tx { font-size: 17px; }
+
+  .st-top { flex-wrap: wrap; }
+  .st-flag { order: 9; width: 100%; }
+  .def-card { max-width: calc(100vw - 32px); }
+  .menu { max-width: calc(100vw - 16px); }
+}

@@ -39,7 +39,7 @@ export default function ActivityPage() {
           <Empty>No AI calls yet.</Empty>
         ) : (
           <div className="table-wrap">
-            <table className="table">
+            <table className="table wide">
               <thead><tr><th>When</th><th>Where</th><th>What</th><th>Paragraphs</th><th>Sent</th><th /></tr></thead>
               <tbody>
                 {shown.map((r) => (

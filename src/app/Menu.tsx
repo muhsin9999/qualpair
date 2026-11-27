@@ -12,7 +12,7 @@ export interface MenuItem {
 /** A button that opens a floating list of actions (fixed position, so nothing clips it). */
 export function Menu({ label, items, icon }: { label: string; items: MenuItem[]; icon?: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const [pos, setPos] = useState({ top: 0, left: 0 });
   const [active, setActive] = useState(0);
   const btn = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -32,7 +32,9 @@ export function Menu({ label, items, icon }: { label: string; items: MenuItem[];
 
   function show() {
     const r = btn.current!.getBoundingClientRect();
-    setPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    // Right-aligned to the button, but never past either edge of the screen.
+    const w = Math.min(320, window.innerWidth - 16);
+    setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8)) });
     setActive(0);
     setOpen(true);
   }
@@ -48,7 +50,7 @@ export function Menu({ label, items, icon }: { label: string; items: MenuItem[];
         {icon}{label} <ChevronDown size={15} />
       </button>
       {open && createPortal(
-        <div ref={list} id={id} role="menu" aria-label={label} className="menu" style={{ top: pos.top, right: pos.right }}
+        <div ref={list} id={id} role="menu" aria-label={label} className="menu" style={{ top: pos.top, left: pos.left, width: Math.min(320, window.innerWidth - 16) }}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') setActive((a) => (a + 1) % items.length);
             else if (e.key === 'ArrowUp') setActive((a) => (a - 1 + items.length) % items.length);

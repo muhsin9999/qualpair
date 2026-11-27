@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowDown, ArrowUp, BookOpen, Check, Lock, Shuffle, UserRound } from 'lucide-react';
 import { db } from '../../db/db';
@@ -53,11 +53,16 @@ function Setup({ pid }: { pid: string }) {
 }
 
 /** The codebook entry for the code under the pointer, shown beside it, so you never have to leave the page to check a rule. */
-function CodeDefinition({ code, at }: { code: Code; at: { top: number; right: number } }) {
+function CodeDefinition({ code, at }: { code: Code; at: { top: number; right: number; bottom: number; below: boolean } }) {
   const rows: Array<[string, string]> = [['Use when', code.whenToUse], ['Don’t use when', code.whenNotToUse], ['Example', code.example]];
-  const top = Math.max(12, Math.min(at.top - 14, window.innerHeight - 340));
+  // Beside the code list when there's room; on narrow screens, under (or over) the code itself, full width.
+  const style: CSSProperties = !at.below
+    ? { top: Math.max(12, Math.min(at.top - 14, window.innerHeight - 340)), right: at.right }
+    : at.bottom + 280 < window.innerHeight
+      ? { top: at.bottom + 8, left: 16, right: 16, width: 'auto' }
+      : { bottom: window.innerHeight - at.top + 8, left: 16, right: 16, width: 'auto' };
   return createPortal(
-    <div className="def-card" role="tooltip" style={{ top, right: at.right }}>
+    <div className="def-card" role="tooltip" style={style}>
       <div className="row" style={{ gap: 8 }}><span className="cbar" style={{ background: codeColor(code) }} /><strong>{code.name}</strong></div>
       {code.definition.trim() && <p>{code.definition}</p>}
       {rows.filter(([, v]) => v.trim()).map(([k, v]) => (
@@ -92,11 +97,11 @@ export default function SamplePage() {
   const titles = useLiveQuery(async () => new Map((await db.transcripts.where('projectId').equals(pid).toArray()).map((t) => [t.id, t.title])), [pid]);
   const [pos, setPos] = useState<number | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [peek, setPeek] = useState<{ id: string; top: number; right: number } | null>(null);
+  const [peek, setPeek] = useState<{ id: string; top: number; right: number; bottom: number; below: boolean } | null>(null);
   const showDef = (id: string, el: Element | null) => {
     const r = el?.closest('.card')?.getBoundingClientRect();
     const row = el?.getBoundingClientRect();
-    if (r && row) setPeek({ id, top: row.top, right: window.innerWidth - r.left + 12 });
+    if (r && row) setPeek({ id, top: row.top, bottom: row.bottom, right: window.innerWidth - r.left + 12, below: r.left < 344 });
   };
 
   const firstUndone = useMemo(() => (segs && human ? Math.max(0, segs.findIndex((s) => !human.has(s.id))) : 0), [segs, human]);

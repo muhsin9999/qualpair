@@ -201,9 +201,9 @@ export default function AccessPage() {
           ) : visible.length === 0 && <div className="empty small">Nothing hidden in this interview yet. Show all paragraphs and select words to hide them.</div>}
           {visible.map((s) => (
             <Fragment key={s.id}>
-              <div className="row" style={{ alignItems: 'flex-start', gap: 32, padding: '14px 0', borderBottom: '1px solid var(--rule)' }}>
-                <div className="grow orig-col" style={{ font: '15.5px/1.7 var(--read)' }}><Original seg={s} copy={copies?.get(s.id)} /></div>
-                <div className="grow" style={{ font: '15.5px/1.7 var(--read)' }}><CopyText seg={s} copy={copies?.get(s.id)} /></div>
+              <div className="row acc-row" style={{ alignItems: 'flex-start', gap: 32, padding: '14px 0', borderBottom: '1px solid var(--rule)' }}>
+                <div className="grow orig-col" data-label="Original" style={{ font: '15.5px/1.7 var(--read)' }}><Original seg={s} copy={copies?.get(s.id)} /></div>
+                <div className="grow acc-copy" data-label="What the cloud reader sees" style={{ font: '15.5px/1.7 var(--read)' }}><CopyText seg={s} copy={copies?.get(s.id)} /></div>
               </div>
             </Fragment>
           ))}

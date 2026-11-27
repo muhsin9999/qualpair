@@ -64,9 +64,9 @@ export default function OverviewPage() {
       <PageHead title={project.name} sub={project.researchQuestion || undefined} />
       <div className="work col">
         <FinishedNote pid={project.id} />
-        <div className="row" style={{ gap: 18, alignItems: 'stretch' }}>
+        <div className="row ov-trio" style={{ gap: 18, alignItems: 'stretch' }}>
           {readerCard('laptop', s.laptopDone, kl)}
-          <div className="stack" style={{ width: 240, flex: 'none', background: 'var(--ink)', color: '#fff', borderRadius: 12, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+          <div className="stack ov-you" style={{ background: 'var(--ink)', color: '#fff', borderRadius: 12, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
             <span style={{ width: 40, height: 40, borderRadius: 20, background: '#ffffff1f', display: 'grid', placeItems: 'center' }}><UserRound size={20} /></span>
             <strong style={{ fontSize: 17 }}>You</strong>
             <span className="small" style={{ opacity: 0.75 }}>{s.sampleDone} paragraphs coded by hand. Both readers are scored against you.</span>

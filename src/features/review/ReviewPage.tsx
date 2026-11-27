@@ -84,7 +84,7 @@ export default function ReviewPage() {
         {!item ? (
           <div className="grow"><Empty action={<Link className="btn primary" to="../report">Build the report</Link>}><CheckCircle2 size={22} /> <div>All {total} disagreements decided.</div></Empty></div>
         ) : (
-          <div ref={paperRef} className="paper grow doc">
+          <div ref={paperRef} className="paper grow doc rv-doc">
             <h2>{titles?.get(item.segment.transcriptId)}</h2>
             {context?.map((s) => {
               const focus = s.id === item.segment.id;
@@ -98,7 +98,7 @@ export default function ReviewPage() {
                     </div>
                   </div>
                   {focus ? (
-                    <div className="stack" style={{ width: 150, gap: 6, paddingTop: 22 }}>
+                    <div className="stack para-tag" style={{ width: 150, gap: 6, paddingTop: 22 }}>
                       <span className="row tiny" style={{ fontWeight: 700 }}><span className="cbar" style={{ background: codeColor(item.code), height: 12 }} />{item.code.name}</span>
                       <span className="row tiny" style={{ gap: 12, paddingLeft: 9, fontWeight: 700 }}>
                         <span className="row laptop" style={{ gap: 4, opacity: item.laptop ? 1 : 0.5 }} title={`Laptop reader: ${item.laptop ? 'yes' : 'no'}`}><Laptop size={13} /> {item.laptop ? 'Yes' : 'No'}</span>

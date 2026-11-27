@@ -3,24 +3,47 @@ import { BrowserRouter, Link, Navigate, Outlet, Route, Routes, useLocation } fro
 import { Menu, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { Nav } from './Nav';
-import { ErrorBoundary } from './ErrorBoundary';
+import { ErrorBoundary, isStaleBuild } from './ErrorBoundary';
 import { ProjectsPage } from '../features/projects/ProjectsPage';
 import { LandingPage } from '../features/landing/LandingPage';
 import { ConfirmHost } from './Confirm';
 
-const Overview = lazy(() => import('../features/overview/OverviewPage'));
-const Interviews = lazy(() => import('../features/interviews/InterviewsPage'));
-const Codebook = lazy(() => import('../features/codebook/CodebookPage'));
-const Sample = lazy(() => import('../features/sample/SamplePage'));
-const Laptop = lazy(() => import('../features/laptop/LaptopPage'));
-const Access = lazy(() => import('../features/access/AccessPage'));
-const Cloud = lazy(() => import('../features/cloud/CloudPage'));
-const Agreement = lazy(() => import('../features/agreement/AgreementPage'));
-const CodeDetail = lazy(() => import('../features/agreement/CodeDetailPage'));
-const Review = lazy(() => import('../features/review/ReviewPage'));
-const Report = lazy(() => import('../features/report/ReportPage'));
-const Activity = lazy(() => import('../features/activity/ActivityPage'));
-const Eval = lazy(() => import('../features/eval/EvalPage'));
+/**
+ * Load a page's code. If the file is gone because a new version was deployed while the tab was open,
+ * reload once to pick up the new version (guarded so it can't loop).
+ */
+function page<T>(load: () => Promise<T>) {
+  return lazy(() =>
+    load().then(
+      (m) => m as T & { default: React.ComponentType },
+      (e) => {
+        const key = 'qp-reloaded-for-update';
+        let last = 0;
+        try { last = Number(sessionStorage.getItem(key) ?? 0); } catch { /* storage blocked */ }
+        if (isStaleBuild(e) && Date.now() - last > 30_000) {
+          try { sessionStorage.setItem(key, String(Date.now())); } catch { /* storage blocked */ }
+          location.reload();
+          return new Promise<never>(() => {});
+        }
+        throw e;
+      },
+    ),
+  );
+}
+
+const Overview = page(() => import('../features/overview/OverviewPage'));
+const Interviews = page(() => import('../features/interviews/InterviewsPage'));
+const Codebook = page(() => import('../features/codebook/CodebookPage'));
+const Sample = page(() => import('../features/sample/SamplePage'));
+const Laptop = page(() => import('../features/laptop/LaptopPage'));
+const Access = page(() => import('../features/access/AccessPage'));
+const Cloud = page(() => import('../features/cloud/CloudPage'));
+const Agreement = page(() => import('../features/agreement/AgreementPage'));
+const CodeDetail = page(() => import('../features/agreement/CodeDetailPage'));
+const Review = page(() => import('../features/review/ReviewPage'));
+const Report = page(() => import('../features/report/ReportPage'));
+const Activity = page(() => import('../features/activity/ActivityPage'));
+const Eval = page(() => import('../features/eval/EvalPage'));
 
 function ProjectLayout() {
   // In narrow windows the study menu becomes a drawer behind a Menu button.
@@ -36,7 +59,7 @@ function ProjectLayout() {
       {menu && <div className="menu-backdrop" onClick={() => setMenu(false)} aria-hidden="true" />}
       <Nav />
       <main className="main">
-        <ErrorBoundary>
+        <ErrorBoundary key={pathname} home={pathname.split('/').slice(0, 3).join('/')}>
           <Suspense fallback={<div className="empty">Loading…</div>}>
             <Outlet />
           </Suspense>

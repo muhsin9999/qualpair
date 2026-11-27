@@ -34,3 +34,4 @@ tools/plan-to-html.py
 .out-shot.mjs
 .rep-chk.mjs
 .rp-all.mjs
+.tmp-audit/

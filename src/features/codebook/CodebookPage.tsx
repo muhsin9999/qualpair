@@ -97,7 +97,7 @@ export default function CodebookPage() {
         <button className="btn primary" disabled={!dirty} onClick={save}>Save codebook</button>
       </PageHead>
       <div className="work">
-        <div className="card stack" style={{ width: 290, flex: 'none', padding: '16px 10px', gap: 4 }}>
+        <div className="card stack" style={{ width: 290, flex: 'none', padding: '16px 10px', gap: 4 }} data-col>
           <div className="stack" style={{ padding: '0 8px 12px', borderBottom: '1px solid var(--rule)', gap: 6 }}>
             <span className="label">Research question</span>
             <textarea className="textarea" rows={3} style={{ fontSize: 13.5 }} value={rq} onChange={(e) => setRq(e.target.value)} onBlur={() => db.projects.update(pid, { researchQuestion: rq })} />
