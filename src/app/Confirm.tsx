@@ -33,7 +33,10 @@ export function ConfirmHost() {
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (q && !d.open) d.showModal();
+    if (q && !d.open) {
+      d.showModal();
+      d.querySelector<HTMLButtonElement>('[data-first]')?.focus();
+    }
     else if (!q && d.open) d.close();
   }, [q]);
 
@@ -56,8 +59,8 @@ export function ConfirmHost() {
             </div>
           </div>
           <div className="row" style={{ justifyContent: 'flex-end', gap: 8 }}>
-            <button type="button" className="btn" autoFocus={q.danger} onClick={() => answer(false)}>Cancel</button>
-            <button type="button" className={q.danger ? 'btn danger' : 'btn primary'} autoFocus={!q.danger} onClick={() => answer(true)}>{q.confirm}</button>
+            <button type="button" className="btn" data-first={q.danger ? '' : undefined} onClick={() => answer(false)}>Cancel</button>
+            <button type="button" className={q.danger ? 'btn danger' : 'btn primary'} data-first={q.danger ? undefined : ''} onClick={() => answer(true)}>{q.confirm}</button>
           </div>
         </div>
       )}

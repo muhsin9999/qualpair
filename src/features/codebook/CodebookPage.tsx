@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useState } from 'react';
-import { Cloud, Download, Laptop, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Cloud, Download, Laptop, Plus, Trash2, Upload } from 'lucide-react';
 import { db } from '../../db/db';
 import { codeColor, usePid, useProject } from '../../app/hooks';
 import { PageHead } from '../../app/ui';
@@ -9,6 +9,7 @@ import { agreementByCode } from '../../services/results';
 import { getCloudReader } from '../../ai/registry';
 import { formatKappa, kappaBand } from '../../domain/stats/agreement';
 import { downloadText, qdcXml } from '../../services/export';
+import { codeFields, parseQdc } from '../../services/qdpx';
 import type { Code } from '../../types';
 import { CloudTermsNotice } from '../cloud/CloudTermsNotice';
 import { confirmBox } from '../../app/Confirm';
@@ -26,6 +27,7 @@ export default function CodebookPage() {
   const [drafting, setDrafting] = useState(false);
   const [confirmDraft, setConfirmDraft] = useState(false);
   const [msg, setMsg] = useState('');
+  const qdcRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (loaded && draft === null) setDraft(structuredClone(loaded.b?.codes ?? []));
@@ -43,6 +45,20 @@ export default function CodebookPage() {
   async function save() {
     await saveCodebook(pid, codes);
     setMsg(machineCoded ? 'Saved as a new version. Run the readers again so they use the new definitions.' : 'Saved.');
+  }
+  /** Add codes from a REFI-QDA codebook (.qdc) to the draft; names already in the codebook are skipped. */
+  async function importQdc(file: File | undefined) {
+    if (!file || !draft) return;
+    try {
+      const have = new Set(draft.map((c) => c.name.trim().toLowerCase()));
+      const fresh = parseQdc(await file.text()).filter((c) => !have.has(c.name.toLowerCase()));
+      setDraft([...draft, ...fresh.map((c, i) => newCode(c.name, (draft.length + i) % 8, codeFields(c.definition)))]);
+      setMsg(fresh.length ? `Added ${fresh.length} code${fresh.length === 1 ? '' : 's'} from ${file.name}. Press Save codebook to keep them.` : 'Every code in that file is already in your codebook.');
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (qdcRef.current) qdcRef.current.value = '';
+    }
   }
   function add() {
     const c = newCode('New code', codes.length % 8);
@@ -75,6 +91,8 @@ export default function CodebookPage() {
   return (
     <>
       <PageHead title="Codebook" sub={book ? `Version ${book.version}` : undefined}>
+        <button className="btn" onClick={() => qdcRef.current?.click()} title="Codebook from NVivo, ATLAS.ti, MAXQDA or QualCoder"><Upload size={15} /> Import .qdc</button>
+        <input ref={qdcRef} type="file" accept=".qdc,.xml" hidden onChange={(e) => void importQdc(e.target.files?.[0])} />
         {book && <button className="btn" onClick={() => downloadText(`${project.name} codebook.qdc`, qdcXml(project.name, book.codes), 'application/xml')}><Download size={15} /> .qdc</button>}
         <button className="btn primary" disabled={!dirty} onClick={save}>Save codebook</button>
       </PageHead>

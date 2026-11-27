@@ -17,6 +17,7 @@ import { buildDocx } from './docx';
 import { coreqRows } from './coreq';
 import { codableSegments, currentCodebook } from '../../services/core';
 import { finalCodes } from '../../services/results';
+import { buildQdpx, qdpxInput } from '../../services/qdpx';
 import type { ReportFont, ReportSettings } from '../../types';
 
 const FONTS: ReportFont[] = ['Times New Roman', 'Georgia', 'Calibri', 'Arial'];
@@ -206,6 +207,7 @@ export default function ReportPage() {
       <PageHead title="Report" sub={`Draft · ${d.undecided ? `${d.undecided} disagreements still undecided` : 'all disagreements decided'}`}>
         <Menu label="More" icon={<Download size={16} />} items={[
           { label: 'Coded paragraphs', hint: 'CSV, one row per paragraph', onSelect: () => void csvSegments() },
+          { label: 'Whole project for NVivo / ATLAS.ti / MAXQDA', hint: 'REFI-QDA .qdpx: interviews, codebook, each coder’s coding', onSelect: async () => { const bytes = buildQdpx(await qdpxInput(pid)); downloadBlob(`${d.project.name}.qdpx`, new Blob([bytes as BlobPart], { type: 'application/zip' })); } },
           { label: 'Codebook for NVivo / ATLAS.ti', hint: 'QDC file', onSelect: async () => { const b = await currentCodebook(pid); if (b) downloadText(`${d.project.name} codebook.qdc`, qdcXml(d.project.name, b.codes), 'application/xml'); } },
           { label: 'Study backup', hint: 'JSON, everything in this study', onSelect: () => void backup() },
         ]} />

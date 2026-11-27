@@ -13,6 +13,9 @@ Researchers who analyse confidential interviews (health, migration, NGO evaluati
 | Agreement | — | Cohen's κ per code, each reader vs you | This browser |
 | Disagreements | You decide | Where the two readers differ | This browser |
 | Report | — | APA-style findings report, methods and data-flow statement | This browser → Word / PDF |
+| Exchange | — | Whole project as REFI-QDA (`.qdpx`) for NVivo, ATLAS.ti, MAXQDA, QualCoder | This browser |
+
+**Works with the tools researchers already use.** The report's *More* menu exports the whole study as a REFI-QDA project (`.qdpx`, checked against the official schema): the interviews, the codebook, and each paragraph's coding under four users (you, the laptop reader, the cloud reader, and the final coding after your review), with decision memos as notes. *Open .qdpx project* on the Studies page brings interviews and a codebook in from NVivo, ATLAS.ti, MAXQDA or QualCoder; *Import .qdc* adds a codebook. Coding from another program isn't copied in, because QualPair scores each reader against your own sample.
 
 Every AI call is logged (time, where it ran, model, prompt version); cloud calls keep the exact text sent.
 
@@ -50,7 +53,7 @@ npm run dev          # http://127.0.0.1:5173 — open in desktop Chrome with Gem
 npm test             # unit tests (Vitest): parsing, κ/AC1, de-identification, full flow, cloud privacy, exports
 npm run typecheck
 npm run build
-npx playwright test  # browser tests with practice readers: full flow, offline, import
+npx playwright test  # browser tests with practice readers: full flow, offline, import, REFI-QDA round trip
 REAL_CLOUD=1 npx playwright test e2e/cloud-real.spec.ts   # real cloud reader via the dev server
 ```
 

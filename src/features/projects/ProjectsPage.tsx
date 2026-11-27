@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Cloud, Laptop, Lock, MonitorDown, Plus, Trash2, UserRound } from 'lucide-react';
+import { ArrowRight, Cloud, FolderOpen, Laptop, Lock, MonitorDown, Plus, Trash2, UserRound } from 'lucide-react';
 import { db } from '../../db/db';
 import { createProject, deleteProject } from '../../services/core';
 import { FINISHED_ID, loadSampleProject } from '../../services/sample';
@@ -16,6 +16,7 @@ import { NameDialog } from '../../app/NameDialog';
 import { PracticeFlag } from '../../app/Nav';
 import { practiceMode } from '../../ai/registry';
 import { confirmBox } from '../../app/Confirm';
+import { importQdpx } from '../../services/qdpx';
 
 type Stats = NonNullable<Awaited<ReturnType<typeof studyStats>>>;
 
@@ -124,6 +125,26 @@ export function ProjectsPage() {
   const hasSample = projects?.some((p) => p.isSample && p.id !== FINISHED_ID);
 
   const newStudy = () => setNaming(true);
+  const qdpxRef = useRef<HTMLInputElement>(null);
+  const openProject = () => qdpxRef.current?.click();
+  async function fromQdpx(file: File | undefined) {
+    if (!file) return;
+    setErr('');
+    try {
+      const r = await importQdpx(new Uint8Array(await file.arrayBuffer()));
+      const body = [
+        `${r.interviews} interview${r.interviews === 1 ? '' : 's'} and ${r.codes} code${r.codes === 1 ? '' : 's'} brought in.`,
+        r.codings ? `Coding from the other program (${r.codings.toLocaleString()} tags) isn’t copied: in QualPair you code a sample yourself, both AI readers code everything, and each is scored against you.` : '',
+        r.skipped.length ? `Left out (no plain text): ${r.skipped.join(', ')}.` : '',
+        'Check who the interviewer is on the Interviews page.',
+      ].filter(Boolean).join(' ');
+      if (await confirmBox({ title: `Imported “${r.name}”`, body, confirm: 'Open study' })) navigate(`/p/${r.projectId}/interviews`);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (qdpxRef.current) qdpxRef.current.value = '';
+    }
+  }
   async function create(name: string | null) {
     setNaming(false);
     if (!name) return;
@@ -160,7 +181,9 @@ export function ProjectsPage() {
             <span className="st-private"><Lock size={14} /> Kept only in this browser. Nothing leaves it unless you send approved access copies to the cloud reader.</span>
           </div>
           <span className="spacer" />
+          <button className="btn" onClick={openProject} title="A REFI-QDA project from NVivo, ATLAS.ti, MAXQDA or QualCoder"><FolderOpen size={16} /> Open .qdpx project</button>
           <button className="btn primary" onClick={newStudy}><Plus size={16} /> New study</button>
+          <input ref={qdpxRef} type="file" accept=".qdpx" hidden onChange={(e) => void fromQdpx(e.target.files?.[0])} />
         </div>
 
         {live && liveProject && (
@@ -188,7 +211,10 @@ export function ProjectsPage() {
             <div className="st-empty-own">
               <h2>Or start with your own interviews</h2>
               <p>Paste or upload transcripts (Word, text or subtitles). They stay in this browser.</p>
-              <button className="btn" onClick={newStudy}><Plus size={16} /> New study</button>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn" onClick={newStudy}><Plus size={16} /> New study</button>
+                <button className="btn" onClick={openProject}><FolderOpen size={16} /> Open .qdpx project</button>
+              </div>
             </div>
           </div>
         ) : (
