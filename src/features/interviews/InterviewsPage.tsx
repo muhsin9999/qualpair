@@ -8,6 +8,7 @@ import { paraNo, usePid, useParticipants, useTranscripts } from '../../app/hooks
 import { Empty, PageHead } from '../../app/ui';
 import { deleteTranscript, importTranscript, setInterviewers } from '../../services/core';
 import type { Transcript } from '../../types';
+import { confirmBox } from '../../app/Confirm';
 
 const ATTRS = ['Group', 'Time in the UK', 'Region of origin'];
 
@@ -94,7 +95,7 @@ function Panel({ t, onClose }: { t: Transcript; onClose: () => void }) {
               />
             </label>
           ))}
-          <button className="btn small" style={{ alignSelf: 'flex-start', marginTop: 8 }} onClick={() => { if (confirm(`Delete ${t.title} and all its coding?`)) { void deleteTranscript(t.id); onClose(); } }}>
+          <button className="btn small" style={{ alignSelf: 'flex-start', marginTop: 8 }} onClick={async () => { if (await confirmBox({ title: `Delete ${t.title}?`, body: 'Its paragraphs and all coding on them (yours and both readers’) are removed from this study. It can’t be undone.', confirm: 'Delete interview', danger: true })) { void deleteTranscript(t.id); onClose(); } }}>
             <Trash2 size={14} /> Delete interview
           </button>
         </div>

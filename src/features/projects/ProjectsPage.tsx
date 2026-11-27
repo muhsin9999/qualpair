@@ -15,6 +15,7 @@ import { useInstall } from '../../app/install';
 import { NameDialog } from '../../app/NameDialog';
 import { PracticeFlag } from '../../app/Nav';
 import { practiceMode } from '../../ai/registry';
+import { confirmBox } from '../../app/Confirm';
 
 type Stats = NonNullable<Awaited<ReturnType<typeof studyStats>>>;
 
@@ -66,7 +67,7 @@ function StudyCard({ p }: { p: Project }) {
           </span>
         </div>
         <button className="btn ghost small st-del" aria-label={`Delete ${p.name}`} title="Delete study"
-          onClick={() => { if (confirm(`Delete “${p.name}” and everything in it from this browser?`)) void deleteProject(p.id); }}>
+          onClick={async () => { if (await confirmBox({ title: `Delete “${p.name}”?`, body: 'This removes the study and everything in it (interviews, codebook, all coding and the AI activity log) from this browser. It can’t be undone.', confirm: 'Delete study', danger: true })) void deleteProject(p.id); }}>
           <Trash2 size={15} />
         </button>
       </div>

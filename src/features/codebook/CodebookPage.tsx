@@ -11,6 +11,7 @@ import { formatKappa, kappaBand } from '../../domain/stats/agreement';
 import { downloadText, qdcXml } from '../../services/export';
 import type { Code } from '../../types';
 import { CloudTermsNotice } from '../cloud/CloudTermsNotice';
+import { confirmBox } from '../../app/Confirm';
 
 export default function CodebookPage() {
   const pid = usePid();
@@ -48,8 +49,8 @@ export default function CodebookPage() {
     setDraft([...codes, c]);
     setSelId(c.id);
   }
-  function remove() {
-    if (!sel || !confirm(`Delete “${sel.name}”?`)) return;
+  async function remove() {
+    if (!sel || !(await confirmBox({ title: `Delete “${sel.name}”?`, body: 'The code is removed from your draft. Nothing changes until you press Save.', confirm: 'Delete code', danger: true }))) return;
     setDraft(codes.filter((c) => c.id !== sel.id));
     setSelId(null);
   }

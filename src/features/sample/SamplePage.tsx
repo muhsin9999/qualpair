@@ -8,6 +8,7 @@ import { PageHead, revealIn, Track } from '../../app/ui';
 import { Select } from '../../app/Select';
 import { ensureSample, getSample, resetSample, saveSegmentCoding } from '../../services/coding';
 import type { Code, Segment } from '../../types';
+import { confirmBox } from '../../app/Confirm';
 
 function Setup({ pid }: { pid: string }) {
   const project = useProject(pid);
@@ -155,7 +156,7 @@ export default function SamplePage() {
   return (
     <>
       <PageHead title="Your sample" sub={`Code these yourself. Both readers are scored against you.${sample.madeByTeam ? ' (This sample was coded by the QualPair team to show the workflow.)' : ''}`}>
-        <button className="btn ghost small" onClick={() => { if (confirm('Draw a new sample? Your sample coding will be cleared.')) void resetSample(pid); }}>Redraw sample</button>
+        <button className="btn ghost small" onClick={async () => { if (await confirmBox({ title: 'Draw a new sample?', body: 'Your coding of the current sample will be cleared and a new random sample drawn.', confirm: 'Draw new sample', danger: true })) void resetSample(pid); }}>Redraw sample</button>
       </PageHead>
       <div className="work pane">
         <div ref={paperRef} className="paper grow doc">

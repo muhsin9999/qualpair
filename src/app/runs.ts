@@ -20,6 +20,8 @@ interface RunState {
   lastAt?: number;
   /** Seconds per paragraph for recent paragraphs, not counting the first one (it includes loading the model). */
   durations?: number[];
+  /** The loop has finished, possibly with skipped paragraphs (progress.errors) that Resume will try again. */
+  ended?: boolean;
   controller: AbortController;
 }
 
@@ -36,7 +38,7 @@ interface RunsStore {
 export const useRuns = create<RunsStore>((set, get) => ({
   runs: {},
   async start(pid, kind) {
-    if (get().runs[kind] && !get().runs[kind]!.error && get().runs[kind]!.progress.done < get().runs[kind]!.progress.total) return;
+    if (isRunning(get().runs[kind])) return;
     const controller = new AbortController();
     const state: RunState = { pid, kind, progress: { done: 0, total: 0, errors: 0 }, startedAt: Date.now(), controller };
     set((s) => ({ runs: { ...s.runs, [kind]: state } }));
@@ -70,13 +72,10 @@ export const useRuns = create<RunsStore>((set, get) => ({
       set((s) => {
         const cur = s.runs[kind];
         if (!cur || cur.controller !== controller) return s;
-        if (controller.signal.aborted || (!cur.error && cur.progress.done >= cur.progress.total)) {
-          const next = { ...s.runs };
-          if (controller.signal.aborted) delete next[kind];
-          else next[kind] = cur;
-          return { runs: next };
-        }
-        return s;
+        const next = { ...s.runs };
+        if (controller.signal.aborted) delete next[kind];
+        else next[kind] = { ...cur, ended: true };
+        return { runs: next };
       });
     }
   },
@@ -91,7 +90,7 @@ export const useRuns = create<RunsStore>((set, get) => ({
 }));
 
 export function isRunning(r: RunState | undefined) {
-  return !!r && !r.error && r.progress.done < r.progress.total && !r.controller.signal.aborted;
+  return !!r && !r.ended && !r.error && r.progress.done < r.progress.total && !r.controller.signal.aborted;
 }
 
 /** True until the first paragraph of this run is finished (for the laptop reader, that includes loading the model). */

@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Circle, Download, Laptop, LoaderCircle, Pause, Play } from 'lucide-react';
-import { usePid, useCodebook, useTranscripts } from '../../app/hooks';
+import { plural, usePid, useCodebook, useTranscripts } from '../../app/hooks';
 import { studyStats } from '../../app/stats';
 import { CodeChip, PageHead, Track } from '../../app/ui';
 import { currentElapsed, eta, formatElapsed, isRunning, isWarmingUp, useRuns } from '../../app/runs';
@@ -99,7 +99,7 @@ export default function LaptopPage() {
     if (!reader.isPractice) sub = 'The first paragraph takes about a minute while the model loads. After that, about 5–20 seconds each, depending on the computer.';
   } else if (running) {
     title = `Coding interview ${tIndex} of ${transcripts?.length ?? 0}`;
-    sub = `Reading paragraph ${(done + 1).toLocaleString()} · ${elapsed}. You can keep working elsewhere in the app.`;
+    sub = `Reading paragraph ${(done + (run?.progress.errors ?? 0) + 1).toLocaleString()} · ${elapsed}. You can keep working elsewhere in the app.`;
   }
 
   return (
@@ -134,6 +134,12 @@ export default function LaptopPage() {
             </div>
             {warming ? <Track value={0} total={0} kind="laptop" busy /> : <Track value={done} total={total} kind="laptop" />}
             {run?.error && <div className="notice" role="alert"><strong>The laptop reader stopped.</strong> {run.error}</div>}
+            {!run?.error && !!run?.progress.errors && (
+              <div className="notice" role="status">
+                <strong>{plural(run.progress.errors, 'paragraph')} skipped.</strong> The laptop reader couldn’t code {run.progress.errors === 1 ? 'it' : 'them'} this time (details in AI activity).
+                {running ? ' Skipped paragraphs stay uncoded for now.' : ' Press Resume to try again.'} If it keeps happening, closing other apps frees memory for Gemini Nano.
+              </div>
+            )}
           </div>
         )}
         <div className="table-wrap">

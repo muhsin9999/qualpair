@@ -554,3 +554,11 @@ mark.q { background: rgb(201 138 30 / 0.22); box-shadow: inset 0 -2.5px 0 var(--
 .finished-note { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 10px; background: var(--cloud-tint); color: var(--ink); font-size: 14px; line-height: 1.5; }
 .finished-note > svg { color: var(--cloud); flex: none; margin-top: 2px; }
 .finished-note a { color: var(--cloud); font-weight: 700; }
+/* In-app confirm box */
+.confirm-dialog { width: min(440px, calc(100vw - 32px)); }
+.confirm-dialog h2 { font-size: 20px; }
+.confirm-icon { flex: none; width: 34px; height: 34px; border-radius: 17px; display: grid; place-items: center; background: #f6e3dd; color: #a3402c; }
+.btn.danger { background: #a3402c; color: #fff; border-color: #a3402c; }
+.btn.danger:hover { background: #8a3423; border-color: #8a3423; }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+.name-dialog[open] { animation: dialog-in .14s ease-out; }

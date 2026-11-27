@@ -3,6 +3,7 @@ import { getFirebaseAI } from '../firebase/init';
 import type { Code } from '../types';
 import { deidPrompt, deidSchema, parseJson, PROMPT_VERSIONS } from './prompts';
 import { codeFitting, isTooLarge, type FitState } from './fit';
+import { retryOnTimeout, withTimeout } from './timeout';
 import { ReaderUnavailableError, type CodeResult, type DeviceReader, type DeviceStatus, type LedgerSink } from './readers';
 
 const OPTS = {
@@ -14,6 +15,10 @@ interface LanguageModelStatic {
   availability(o?: object): Promise<string>;
   create(o?: object): Promise<{ prompt(t: string): Promise<string>; destroy(): void }>;
 }
+
+/** How long one Gemini Nano call may take before we give up and ask again. A paragraph usually takes 5–30 s. */
+export const NANO_TIMEOUT_MS = 120_000;
+const STALLED = 'Gemini Nano gave no answer within 2 minutes.';
 
 function chromeLM(): LanguageModelStatic | undefined {
   return (globalThis as unknown as { LanguageModel?: LanguageModelStatic }).LanguageModel;
@@ -66,7 +71,10 @@ export class FirebaseDeviceReader implements DeviceReader {
   async codeSegment(codes: Code[], speakerLabel: string, text: string, log: LedgerSink): Promise<CodeResult> {
     return codeFitting(codes, speakerLabel, text, FirebaseDeviceReader.fit, async (a, version) => {
       try {
-        const res = await this.model(a.schema).generateContent(a.prompt);
+        const res = await retryOnTimeout(
+          () => withTimeout(this.model(a.schema).generateContent(a.prompt), NANO_TIMEOUT_MS, STALLED),
+          () => log({ task: 'code-segment', where: 'on_device', model: this.modelName, promptVersion: version, segmentCount: 1, bytesSent: 0, ok: false, error: `${STALLED} Asked again.` }),
+        );
         if (res.response.inferenceSource && res.response.inferenceSource !== 'on_device') {
           throw new ReaderUnavailableError('The laptop reader did not run on this device.');
         }
@@ -91,7 +99,10 @@ export class FirebaseDeviceReader implements DeviceReader {
 
   async suggestDeid(text: string, log: LedgerSink, depth = 0): Promise<string[]> {
     try {
-      const res = await this.model(deidSchema).generateContent(deidPrompt(text));
+      const res = await retryOnTimeout(
+        () => withTimeout(this.model(deidSchema).generateContent(deidPrompt(text)), NANO_TIMEOUT_MS, STALLED),
+        () => log({ task: 'suggest-deid', where: 'on_device', model: this.modelName, promptVersion: PROMPT_VERSIONS.deviceDeid, segmentCount: 1, bytesSent: 0, ok: false, error: `${STALLED} Asked again.` }),
+      );
       const out = parseJson<{ items?: unknown }>(res.response.text());
       log({ task: 'suggest-deid', where: 'on_device', model: this.modelName, promptVersion: PROMPT_VERSIONS.deviceDeid, segmentCount: 1, bytesSent: 0, ok: true });
       return Array.isArray(out.items) ? out.items.filter((x): x is string => typeof x === 'string' && text.includes(x)) : [];

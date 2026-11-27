@@ -9,6 +9,7 @@ import { practiceMode, setPracticeMode } from '../ai/registry';
 import { usePid, useProject } from './hooks';
 import { studyStats } from './stats';
 import { Logo } from './Logo';
+import { confirmBox } from './Confirm';
 
 function pct(done: number, total: number) {
   if (!total) return '';
@@ -21,7 +22,7 @@ export function PracticeFlag() {
   return (
     <div className="practice-flag" title="Readers use keyword rules, not AI">
       <span>Practice readers · no AI</span>
-      <button type="button" onClick={() => { if (confirm('Turn off practice readers and use the real AI readers (Gemini Nano on this computer, Gemini in the cloud)?')) { setPracticeMode(false); location.replace(location.pathname); } }}>Turn off</button>
+      <button type="button" onClick={async () => { if (await confirmBox({ title: 'Use the real AI readers?', body: 'Practice readers will be turned off. The laptop reader will use Gemini Nano on this computer, and the cloud reader will use Gemini.', confirm: 'Turn off practice' })) { setPracticeMode(false); location.replace(location.pathname); } }}>Turn off</button>
     </div>
   );
 }
