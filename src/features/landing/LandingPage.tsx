@@ -289,7 +289,7 @@ export function LandingPage() {
       </div>
 
       <footer className="ld-foot">
-        Studies stay in your browser. Built with Firebase AI Logic. Code: MIT. Sample interviews: Zhang (2026), CC BY 4.0.
+        Studies stay in your browser. Built with Firebase AI Logic. Code: Apache-2.0. Sample interviews: Zhang (2026), CC BY 4.0.
       </footer>
     </div>
   );

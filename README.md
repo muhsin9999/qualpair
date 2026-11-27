@@ -71,6 +71,6 @@ src/
 
 ## Data and licences
 
-- Code: **MIT** (see `LICENSE`).
+- Code: **Apache-2.0** (see `LICENSE`).
 - Sample study: Zhang, J. (2026). *Interview data: Attitudes towards and experiences of healthcare seeking, self-management of common infections, and antibiotic use among Chinese and Indian international students in the UK* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.23371232 — **CC BY 4.0**. Six transcripts, unchanged apart from conversion to text.
 - Evaluation: Le Foll, E. (2025). *Semi-structured interviews with linguists about Open Science* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.17630137 — **CC BY-SA 4.0**; `public/eval/le-foll.json` is a derived file under the same licence.
